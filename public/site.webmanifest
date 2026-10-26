@@ -1,11 +1,10 @@
 {
-  "name": "Marjal (DEMO)",
-  "short_name": "Marjal",
-  "lang": "es",
+  "name": "2con2estudio",
+  "short_name": "2con2estudio",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#e5e5e5",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icon-192.png",

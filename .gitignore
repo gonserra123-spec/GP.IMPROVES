@@ -2,3 +2,5 @@ node_modules
 dist
 .playwright-mcp
 shots
+dist-share
+share

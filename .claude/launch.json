@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "dev", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--port", "5173", "--strictPort"], "port": 5173 },
+    { "name": "dev-test", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--mode", "test", "--port", "5174", "--strictPort"], "port": 5174 }
+  ]
+}
