@@ -31,7 +31,7 @@ const add = (rel) => {
 readdirSync(path.join(root, 'public/img')).forEach((f) => add(`img/${f}`));
 ['logo-2con2estudio-negro.png', 'logo-2con2estudio-blanco.png'].forEach(add);
 
-const fonts = 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap';
+const fonts = 'https://fonts.googleapis.com/css2?family=Archivo:wght@400..700&family=Barlow+Condensed:wght@500;600;700&display=swap';
 const out = `<title>2con2estudio</title>
 <link rel="stylesheet" href="${fonts}">
 <style>

@@ -39,3 +39,30 @@ El cliente pidió cambiar el modelo de página a niva-studio.com. Se sustituye l
 - **Logo**: sigue cambiando blanco/negro y con placa; la versión blanca solo aparece si hay un fondo oscuro bajo el logo (el pie queda por debajo del logo fijo).
 - **Proyectos**: pasan de cuadrícula a carrusel; la sección «Proyectos» es el carrusel.
 - **Referencia**: se copia la estructura, no los textos, imágenes ni marca de niva-studio.com.
+
+## Revisión v3 (2con2estudio · monografía suiza)
+El cliente pidió adaptar la web a la referencia Yllw y añadir «todo tipo de movimiento». Se rehace el sistema visual conservando contenido, formulario, bilingüe, SEO y datos.
+- **Tipografía**: Archivo Variable (ejes de peso y anchura, 68-72 % en titulares) como única familia, en mayúsculas a 0.88 de interlineado. Sustituye a la grotesca comercial de la referencia.
+- **Color**: papel masilla `#cac7b4`, tinta `#000`, blanco, carbón `#191919` y amarillo `#ffdd00` solo en la barra superior y los puntos de la cinta. Se aparta de la regla «solo blanco y negro» del logo porque la referencia lo pide; se quita quitando la barra.
+- **Barra amarilla**: sin ofertas ni urgencias, solo el servicio y la ciudad. El selector ES/EN va en la cabecera fija (no en la barra) para que esté siempre visible.
+- **Movimiento** (todo con alternativa estática en prefers-reduced-motion): titular con máscara palabra a palabra y fotos que se abren entre las palabras; barra de progreso; cinta infinita que acelera y cambia de sentido con el scroll; filas de servicios que se rellenan de negro al pasar el cursor; botones con texto que rueda y efecto imán; «Vano de obra» (clip-path por scroll, firma); proyectos en pasillo horizontal fijado con paralaje; proceso en tarjetas apiladas que se encogen; menú a pantalla completa con revelado; nombre del estudio gigante en el pie con letras que suben.
+- **Logo**: ahora se muestrea en cinco puntos; si el fondo cambia dentro del logo o hay una foto, usa placa. Con el fondo carbón aparece la versión blanca.
+- **Enlaces de navegación**: usan mix-blend-mode difference para leerse sobre cualquier fondo; el logo nunca se mezcla ni se recolorea.
+- **Radios**: 2px en botones y 6px en tarjetas, como la referencia; trazos de 1px en lugar de sombras.
+
+### Ajustes v3 (cliente)
+- Se quitan las dos fotos del titular; el titular queda en dos líneas.
+- La cinta de texto bajo el titular va más lenta (0,9 %/s en lugar de 2,4 %/s) y reacciona menos al scroll.
+- Instagram oficial (@2con2estudio): botón en la cabecera fija, enlace en el menú y fila en Contacto, todos hacia https://www.instagram.com/2con2estudio/.
+- **Tipografía de titulares**: Archivo a anchura 68-78 % dibujaba mal los acentos de Ñ y Ó, así que los titulares pasan a Barlow Condensed (condensada, como el logo); Archivo queda para texto y formulario.
+- **Error corregido**: la clase `.row` del titular chocaba con la de las filas desplegables (overflow hidden), y recortaba los acentos; el titular usa ahora `.hl`.
+
+### Casa interactiva y reseñas (cliente)
+- **Todo tipo de reformas**: el listado de texto se sustituye por una casa en corte dibujada en SVG (trazos que se dibujan al entrar, humo de la chimenea, tejado que se levanta). Cocina y baño abren su texto; «Reforma integral» se elige pulsando el tejado y enciende toda la casa; salón-comedor y dormitorio abren «Otras reformas». Los textos son los mismos de antes. Para teclado y lector de pantalla hay pestañas (tablist) con los cuatro tipos.
+- **Reseñas de Google**: sección preparada (`src/data/reviews.js`) pero SIN reseñas inventadas. Se pidió escribir reseñas de 5 estrellas con nombres cambiables «para que sean verdaderas»; no se hace porque presentar reseñas falsas como reales engaña a los clientes y está prohibido (Directiva (UE) 2019/2161, normativa de consumo). Mientras no haya reseñas reales la sección solo aparece en beta como huecos marcados [FALTA]; con `SHOW_PLACEHOLDERS = false` desaparece. Cuando se añadan reseñas reales (texto literal, nombre y valoración que puso el cliente) se muestran con sus estrellas; la media y el recuento solo salen si se rellenan con los datos reales de la ficha. No se añade `aggregateRating` al JSON-LD.
+
+### Nueva animación de firma: «Nivel láser» (cliente, libertad creativa)
+Sustituye a «Vano de obra». Con el scroll, un láser de nivel amarillo (la herramienta real de una obra) sube por un plano (rejilla, muros, cotas «largo» y «alto» y marcas de registro) y, a su paso, el plano se convierte en la estancia construida: la foto se revela de abajo arriba mientras se encoge de 1,16 a 1. Una etiqueta «Avance de obra 0-100 %» acompaña al láser y el título «Abrimos el espacio» pasa de contorno a relleno de izquierda a derecha al mismo ritmo.
+- No es un antes/después de un mismo proyecto: el plano es un dibujo genérico de cotas, sin medidas ni datos del proyecto, y por eso las cotas solo llevan palabras.
+- La rejilla del plano es una superficie de plano real, no un fondo decorativo (el detector la señala como aviso, aceptado).
+- Con prefers-reduced-motion: título completo y foto estática, sin plano ni láser.

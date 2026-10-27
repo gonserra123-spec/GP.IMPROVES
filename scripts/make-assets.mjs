@@ -71,7 +71,7 @@ await sharp({ create: { width: 1200, height: 630, channels: 3, background: '#e5e
 
 writeFileSync(pub('site.webmanifest'), JSON.stringify({
   name: '2con2estudio', short_name: '2con2estudio', start_url: '/', display: 'standalone',
-  background_color: '#e5e5e5', theme_color: '#000000',
+  background_color: '#cac7b4', theme_color: '#cac7b4',
   icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     { src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
 }, null, 2));

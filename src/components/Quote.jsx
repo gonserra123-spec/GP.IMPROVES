@@ -216,7 +216,7 @@ export default function Quote() {
   if (result) {
     const est = computeEstimate(result.d, pr.pricing, pr.show);
     return (
-      <section className="section quote" id="presupuesto" aria-labelledby="q-t">
+      <section className="section quote on-dark" id="presupuesto" aria-labelledby="q-t">
         <div className="narrow quote-wrap">
           <div className="quote-side"><h2 id="q-t" className="display">{t('quote.title')}</h2></div>
           <div className="form-card result" role="status" aria-live="polite">
@@ -410,7 +410,7 @@ export default function Quote() {
   ];
 
   return (
-    <section className="section quote" id="presupuesto" aria-labelledby="q-t">
+    <section className="section quote on-dark" id="presupuesto" aria-labelledby="q-t">
       <div className="narrow quote-wrap">
         <div className="quote-side">
           <h2 id="q-t" className="display">{t('quote.title')}</h2>

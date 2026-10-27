@@ -2,7 +2,7 @@
 
 Web de 2con2estudio (Bea Pérez y Gonzalo Pau, Valencia). React + Vite + Motion, con una función serverless para el formulario «Cuéntanos tu reforma».
 
-Dirección de diseño: galería blanca y silenciosa, con la estructura de niva-studio.com (v2). La primera versión, «Showroom brutalista», está descrita en `docs/skills-log.md`.
+Dirección de diseño (v3): monografía suiza sobre papel masilla, con mucho movimiento ligado al scroll. Las versiones anteriores (Showroom brutalista y galería blanca tipo Niva) están descritas en `docs/skills-log.md`.
 
 ## Comandos
 
@@ -67,3 +67,7 @@ Se muestran como etiquetas `[FALTA: …]` mientras `SHOW_PLACEHOLDERS = true` en
 - `api/` función serverless; `shared/` validación común.
 - `assets-cliente/` originales del cliente (no se publican); `public/img/` versiones optimizadas.
 - `legacy/` proyectos anteriores archivados.
+
+## Reseñas de Google
+
+Edita `src/data/reviews.js`: añade cada reseña **real** (texto literal, nombre, valoración y fecha) y, si quieres, el enlace de tu ficha de Google y la media y el número reales. La sección se muestra sola cuando hay reseñas. No añadas reseñas de ejemplo ni cambies valoraciones: es engañoso para los clientes y ilegal en la UE.

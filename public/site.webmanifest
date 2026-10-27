@@ -3,8 +3,8 @@
   "short_name": "2con2estudio",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#e5e5e5",
-  "theme_color": "#000000",
+  "background_color": "#cac7b4",
+  "theme_color": "#cac7b4",
   "icons": [
     {
       "src": "/icon-192.png",

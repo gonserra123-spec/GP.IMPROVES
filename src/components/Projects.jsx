@@ -1,79 +1,92 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react';
 import { useI18n } from '../i18n/index.jsx';
 import { IMAGES } from '../data/images.js';
 import { PROJECTS, SHOW_PLACEHOLDERS } from '../data/business.js';
 import Picture from './Picture.jsx';
 import Ph from './Ph.jsx';
+import { Btn, SplitText, usePinned } from './ui.jsx';
 
-const Chevron = ({ dir }) => (
-  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-    <path d={dir === 'l' ? 'M11 3 5 9l6 6' : 'M7 3l6 6-6 6'} />
-  </svg>
-);
-
-// Carrusel horizontal con encaje (scroll-snap): desplazable con el dedo, el ratón, el teclado o las flechas.
+// Pasillo de proyectos: la sección se fija y el scroll vertical desplaza las fotos en horizontal,
+// con las imágenes moviéndose en sentido contrario (paralaje). En móvil o con movimiento reducido
+// es un carrusel normal con encaje (scroll-snap).
 export default function Projects() {
   const { t, lang } = useI18n();
+  const pinned = usePinned();
   const ref = useRef(null);
+  const trackRef = useRef(null);
+  const [dist, setDist] = useState(0);
+  const [vh, setVh] = useState(typeof window === 'undefined' ? 800 : window.innerHeight);
   const [idx, setIdx] = useState(0);
 
-  const update = useCallback(() => {
-    const el = ref.current;
-    if (!el) return;
-    const mid = el.scrollLeft + el.clientWidth / 2;
-    let best = 0; let dist = Infinity;
-    [...el.children].forEach((c, i) => {
-      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid);
-      if (d < dist) { dist = d; best = i; }
-    });
-    setIdx(best);
+  const measure = useCallback(() => {
+    const tr = trackRef.current;
+    if (!tr) return;
+    setDist(Math.max(0, tr.scrollWidth - window.innerWidth));
+    setVh(window.innerHeight);
   }, []);
 
-  useEffect(() => { update(); window.addEventListener('resize', update); return () => window.removeEventListener('resize', update); }, [update]);
+  useLayoutEffect(() => {
+    if (!pinned) return undefined;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(trackRef.current);
+    window.addEventListener('resize', measure);
+    const id = setTimeout(measure, 600); // tras cargar las imágenes
+    return () => { ro.disconnect(); clearTimeout(id); window.removeEventListener('resize', measure); };
+  }, [pinned, measure]);
 
-  const go = (i) => {
-    const el = ref.current;
-    const c = el?.children[Math.max(0, Math.min(PROJECTS.length - 1, i))];
-    if (!c) return;
-    el.scrollTo({ left: c.offsetLeft + c.offsetWidth / 2 - el.clientWidth / 2, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  };
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const x = useTransform(scrollYProgress, (v) => -v * dist);
+  const px = useTransform(scrollYProgress, [0, 1], ['7%', '-7%']);
+  useMotionValueEvent(scrollYProgress, 'change', (v) => setIdx(Math.min(PROJECTS.length - 1, Math.max(0, Math.floor(v * PROJECTS.length)))));
+
+  const slides = PROJECTS.map((p, i) => {
+    const m = IMAGES[p.id];
+    return (
+      <figure key={p.id} className="slide" aria-label={`${i + 1} / ${PROJECTS.length}`}>
+        <div className="ph" style={{ '--ar': m.width / m.height }}>
+          {pinned
+            ? <motion.div className="ph-in" style={{ x: px }}><Picture id={p.id} alt={p.alt[lang]} sizes="(min-width: 900px) 640px, 86vw" /></motion.div>
+            : <div className="ph-in"><Picture id={p.id} alt={p.alt[lang]} sizes="(min-width: 900px) 640px, 86vw" /></div>}
+        </div>
+        <figcaption>
+          <span className="cp">{p.cap[lang]}</span>
+          {SHOW_PLACEHOLDERS && (
+            <span className="flags">
+              {!p.own && <span className="tag">{t('projects.unconfirmed')}</span>}
+              <span className="tag">{t('projects.lowres')}</span>
+            </span>
+          )}
+        </figcaption>
+      </figure>
+    );
+  });
 
   return (
-    <section className="projects" id="proyectos" aria-labelledby="proj-t">
-      <h2 id="proj-t" className="sr-only">{t('projects.title')}</h2>
-      <div
-        ref={ref} className="carousel" role="region" aria-roledescription="carousel" aria-label={t('projects.title')} tabIndex={0}
-        onScroll={update}
-      >
-        {PROJECTS.map((p, i) => {
-          const m = IMAGES[p.id];
-          return (
-            <figure key={p.id} className="slide" aria-label={`${i + 1} / ${PROJECTS.length}`}>
-              <div className="ph" style={{ '--ar': m.width / m.height }}>
-                <Picture id={p.id} alt={p.alt[lang]} sizes="(min-width: 900px) 640px, 86vw" priority={i === 0} />
-              </div>
-              <figcaption>
-                <span>{p.cap[lang]}</span>
-                {SHOW_PLACEHOLDERS && (
-                  <span className="flags">
-                    {!p.own && <span className="tag">{t('projects.unconfirmed')}</span>}
-                    <span className="tag">{t('projects.lowres')}</span>
-                  </span>
-                )}
-              </figcaption>
-            </figure>
-          );
-        })}
-      </div>
-      <div className="car-ctl">
-        <button type="button" aria-label={t('carousel.prev')} disabled={idx === 0} onClick={() => go(idx - 1)}><Chevron dir="l" /></button>
-        <span className="mono count" aria-live="polite">{t('carousel.counter', { n: idx + 1, total: PROJECTS.length })}</span>
-        <button type="button" aria-label={t('carousel.next')} disabled={idx === PROJECTS.length - 1} onClick={() => go(idx + 1)}><Chevron dir="r" /></button>
-      </div>
-      <div className="wrap center" style={{ marginTop: 20 }}><Ph k="projects" /></div>
-      <div className="actions">
-        <a className="btn btn-fill" href="#presupuesto">{t('hero.cta')}</a>
-        <a className="btn btn-ghost" href="#estudio">{t('hero.ctaStudio')}</a>
+    <section
+      ref={ref} className={`projects on-dark ${pinned ? 'pinned' : ''}`} id="proyectos" aria-labelledby="proj-t"
+      style={pinned ? { '--pin-h': `${dist + vh}px` } : undefined}
+    >
+      <div className="pin-stage">
+        <div className="pin-head">
+          <SplitText as="h2" id="proj-t" className="d-md" text={t('projects.title')} />
+        </div>
+        {pinned ? (
+          <motion.div ref={trackRef} className="track" style={{ x }}>{slides}</motion.div>
+        ) : (
+          <div ref={trackRef} className="track" role="region" aria-roledescription="carousel" aria-label={t('projects.title')} tabIndex={0}>{slides}</div>
+        )}
+        <div className="pin-foot">
+          {pinned && <span className="count" aria-hidden="true">{String(idx + 1).padStart(2, '0')} / {String(PROJECTS.length).padStart(2, '0')}</span>}
+          {pinned && <div className="pin-prog" aria-hidden="true"><motion.i style={{ scaleX: scrollYProgress }} /></div>}
+          <div className="pin-actions">
+            <Ph k="projects" />
+            <div className="actions">
+              <Btn variant="white" href="#presupuesto">{t('hero.cta')}</Btn>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
