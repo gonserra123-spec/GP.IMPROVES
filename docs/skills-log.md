@@ -223,3 +223,14 @@ Verificación Playwright: logo visible en el fotograma 0. Tras el primer paso de
   - Validar al salir del campo hacía desaparecer el aviso y movía la casilla de privacidad justo al pulsarla, así que ahora se valida mientras se escribe.
 - **Pruebas:** UNA reserva real (corte de caballero · Juan Carlos · jueves 5/11/2026 12:00 · suligonserv@gmail.com · respuesta 200). La prueba de 409 se envió al servidor real, que la rechazó sin crear reserva. Las capturas de la pantalla final usan la misma respuesta real repetida en el navegador, sin llamar a n8n.
 - **Pendiente:** el horario de la API dice martes de 10:00 a 19:00 y la web, de 9:30 a 13:30. La política de privacidad sigue sin existir.
+
+### Velo de carga «Baukasten de obra» (2026-11-05)
+El cliente pidió, del Design E, solo la animación de carga adaptada a esta web (el resto del Design E, escena 3D de scroll y paleta negra, no se aplica: la web sigue en Atelier Mono).
+- **Piezas del MENÚ**: M7 + M20 (`src/components/Loader.jsx`). Contornos de piezas extruidas en 3D (proyección en perspectiva a mano sobre canvas 2D, sin Three.js) → relleno en blanco roto/grafito/negro mate → ensamblado en el marco abierto del logo real (medido sobre el PNG del cliente) → el logo real entra y las piezas de relleno se disuelven → cortina que sube y activa la bandera `ready` (`src/lib/ready.js`), de la que depende el reveal del hero.
+- **Mecánica copiada, nada más**: ni formas, ni paleta, ni nombre de las piezas de Der Baukasten. Piezas propias: arco de vano, círculo, marco cuadrado, losa y listones. Franja inferior de tres neutros (blanco, grafito, arena) como progreso; contador 000→100 con easing.
+- **Tiempos**: mínimo 3,4 s, máximo 6,5 s (sale aunque el hero no haya cargado); espera a tipografías y foto del hero.
+- **Accesibilidad**: `role="status"` con texto, contenido de fondo `inert` mientras carga, scroll bloqueado (Lenis parado), sin velo con prefers-reduced-motion. Sin JS la web se ve directamente (el velo lo monta React).
+- **`?noloader`** en la URL lo omite (los scripts de verificación lo usan).
+- **Descartado**: texturas de las fotos en las caras de las piezas (opcional del Design E): no aportan a escala de carga y encarecen el canvas. Móvil: 7 piezas en lugar de 10.
+- **Kit**: el avance manual `__cfTicker.step()` ya no se deshace con el rAF real (el reloj nunca retrocede).
+- **Anti-repetición**: la combinación del proyecto pasa a M7+M20, M10, M15, M17, M22.

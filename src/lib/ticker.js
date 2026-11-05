@@ -46,7 +46,9 @@ function run(now, dt) {
   if (costs.length > 120) costs.shift();
 }
 
-function loop(now) {
+function loop(rafNow) {
+  // Si window.__cfTicker.step() adelantó el reloj a mano, el rAF real no lo hace retroceder.
+  const now = Math.max(rafNow, lastFrameAt);
   const dt = lastFrameAt ? now - lastFrameAt : 16.67;
   lastFrameAt = now;
   run(now, dt);
@@ -77,6 +79,7 @@ export const tickerState = state;
 
 // Avance manual (verificación): n fotogramas de dt ms.
 export function step(n = 1, dt = 16.67) {
+  lastFrameAt = Math.max(lastFrameAt, state.time); // continúa desde el último instante real, nunca hacia atrás
   for (let i = 0; i < n; i += 1) { lastFrameAt += dt; run(lastFrameAt, dt); }
   return { frame: state.frame, scrollY: state.scrollY };
 }

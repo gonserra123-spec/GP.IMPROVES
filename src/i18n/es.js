@@ -8,6 +8,7 @@ export default {
     jsonDescription: 'Estudio de remodelación de viviendas y reformas interiores en Valencia: diseño de interiores y ejecución de obra.',
   },
   skip: 'Saltar al contenido',
+  loader: { label: 'Cargando la web de 2con2estudio', tag: 'Diseño de interiores · Ejecución de obra' },
   nav: {
     home: '2con2estudio, inicio',
     links: [['estudio', 'Estudio'], ['proyectos', 'Proyectos'], ['servicios', 'Servicios'], ['proceso', 'Proceso'], ['presupuesto', 'Contacto']],

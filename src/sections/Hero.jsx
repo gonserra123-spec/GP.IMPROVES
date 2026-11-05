@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n/index.jsx';
 import { useTick, useViewport, reducedMotion } from '../lib/hooks.js';
+import { isReady } from '../lib/ready.js';
 import { createSpring, range, easeOut } from '../lib/spring.js';
 import { CLIENT_PHOTOS } from '../content/business.js';
 import Picture from '../components/Picture.jsx';
@@ -46,7 +47,7 @@ export default function Hero() {
     const all = [...st.a, ...st.b];
     st.springs = all.map(() => createSpring(0, { tension: 110, friction: 19 }));
     st.all = all;
-    st.start = performance.now() + 120;
+    st.start = 0; // arranca cuando el velo de carga da la señal «ready»
     st.entered = false;
     st.p = -1;
     all.forEach((n) => { n.style.opacity = '0'; n.style.transform = 'translate3d(0,50px,0)'; n.style.filter = 'blur(12px)'; });
@@ -63,7 +64,8 @@ export default function Hero() {
 
   useTick((s) => {
     const st = anim.current;
-    if (!live || !st.all) return;
+    if (!live || !st.all || !isReady()) return;
+    if (!st.start) st.start = s.time + 120;
     // M15: entrada letra a letra (35 ms de stagger) con desenfoque, por muelles
     if (!st.entered) {
       const el = s.time - st.start;

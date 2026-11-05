@@ -47,6 +47,10 @@ Rellena `min`/`max` (€/m²) en `src/content/pricing.js` y pon `SHOW_ESTIMATE =
 | `VITE_SITE_URL` | URL pública (canonical, OG, JSON-LD, sitemap). [FALTA: dominio definitivo]; sin ella se usa `https://2con2estudio.example`. |
 | `VITE_SUBMIT_ENDPOINT` | Opcional. Endpoint multipart para las solicitudes. |
 
+## Velo de carga
+
+`src/components/Loader.jsx` (M7 + M20). Se salta con `?noloader` o con movimiento reducido. Duración 3,4–6,5 s. Para verlo paso a paso en Playwright: `window.__cfTicker.step(n)`.
+
 ## Verificación (regla 6)
 
 Con `npm run dev` y Playwright MCP: `browser_run_code_unsafe` con `filename: scripts/verify-shots.cjs` hace capturas por sección y por scroll en 25 % (cambia `W` a 390 para móvil) en `shots/v4/`. `node scripts/contact-sheet.mjs shots/v4/1440 hoja.jpg` monta una hoja de contacto. Las animaciones se avanzan con `window.__cfTicker.step(n)`; `window.__cfTicker.stats()` da ms por fotograma.

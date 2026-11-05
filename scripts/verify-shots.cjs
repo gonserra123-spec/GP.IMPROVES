@@ -6,7 +6,7 @@ async (page) => {
   const H = W < 600 ? 844 : 900;
   const dir = `shots/v4/${W}`;
   await page.setViewportSize({ width: W, height: H });
-  await page.goto('http://localhost:5173/', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:5173/?noloader', { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.setItem('2con2-lang', 'es'));
   await page.reload({ waitUntil: 'networkidle' });
   await page.evaluate(async () => { await document.fonts.ready; window.__cfTicker.step(90); });

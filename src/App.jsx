@@ -1,5 +1,8 @@
 import { LazyMotion, domAnimation } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { useI18n } from './i18n/index.jsx';
+import { setReady } from './lib/ready.js';
+import Loader, { loaderWanted } from './components/Loader.jsx';
 import { useLenis } from './lib/hooks.js';
 import { DEMO_ENABLED } from './content/demo-content.js';
 import Header from './components/Header.jsx';
@@ -16,9 +19,14 @@ import Footer from './sections/Footer.jsx';
 export default function App() {
   const { t } = useI18n();
   useLenis();
+  const [wanted] = useState(loaderWanted);
+  const [loading, setLoading] = useState(wanted);
+  useEffect(() => { if (!wanted) setReady(); }, [wanted]);
   const sections = [Studio, Projects, Services, Process, ...(DEMO_ENABLED ? [Testimonials, Faq] : []), Contact];
   return (
     <LazyMotion features={domAnimation} strict>
+      {loading ? <Loader onDone={() => setLoading(false)} /> : null}
+      <div className="app" inert={loading || undefined}>
       <a className="skip" href="#main">{t('skip')}</a>
       <Header />
       <main id="main">
@@ -26,6 +34,7 @@ export default function App() {
         {sections.map((S, i) => <S key={i} index={i + 1} total={sections.length} />)}
       </main>
       <Footer />
+      </div>
     </LazyMotion>
   );
 }

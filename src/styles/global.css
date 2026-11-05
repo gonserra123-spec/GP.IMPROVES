@@ -419,3 +419,17 @@ p { text-wrap: pretty; }
 .hero__b { margin-top: 0.08em; }
 .field__lb { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .field__in:focus + .field__lb, .field__in:not(:placeholder-shown) + .field__lb, .field__lb--fixed { max-width: 138%; }
+
+/* ── Velo de carga (M7 + M20) ── */
+html.loading { overflow: hidden; }
+.loader { position: fixed; inset: 0; z-index: 200; background: #050505; color: #F2F0EB; overflow: hidden; will-change: transform; }
+.loader__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.loader__logo { position: absolute; opacity: 0; pointer-events: none; }
+.loader__tag { position: absolute; left: var(--m); top: 28px; margin: 0; max-width: 30ch; color: #8A8782; }
+.loader__count { position: absolute; left: var(--m); bottom: 34px; margin: 0; font-size: clamp(56px, 9vw, 150px); line-height: 0.8; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.loader__bar { position: absolute; inset: auto 0 0 0; height: 6px; }
+.loader__fill { display: flex; height: 100%; clip-path: inset(0 100% 0 0); }
+.loader__fill i { flex: 1; display: block; }
+.loader__fill i:nth-child(1) { background: #F2F0EB; }
+.loader__fill i:nth-child(2) { background: #4A4946; }
+.loader__fill i:nth-child(3) { background: #CFC7B8; }

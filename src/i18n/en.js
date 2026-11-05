@@ -8,6 +8,7 @@ export default {
     jsonDescription: 'Home remodelling and interior renovation studio in Valencia: interior design and construction.',
   },
   skip: 'Skip to content',
+  loader: { label: 'Loading the 2con2estudio website', tag: 'Interior design · Build & execution' },
   nav: {
     home: '2con2estudio, home',
     links: [['estudio', 'Studio'], ['proyectos', 'Projects'], ['servicios', 'Services'], ['proceso', 'Process'], ['presupuesto', 'Contact']],
