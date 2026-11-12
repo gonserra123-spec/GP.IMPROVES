@@ -1,0 +1,14 @@
+{
+  "name": "propuesta-committee",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "deck": "node build-deck.mjs",
+    "demo": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "pptxgenjs": "^3.12.0"
+  }
+}

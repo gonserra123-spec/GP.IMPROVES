@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reservados VIP · Committee Club Valencia (demo)</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Committee <span>VIP</span></div>
+    <span class="badge">DEMO · datos ilustrativos</span>
+    <nav class="tabs" role="tablist" aria-label="Secciones de la demo">
+      <button role="tab" id="tab-cliente" aria-selected="true" aria-controls="p-cliente">Cliente</button>
+      <button role="tab" id="tab-sala" aria-selected="false" aria-controls="p-sala">Sala</button>
+      <button role="tab" id="tab-campanas" aria-selected="false" aria-controls="p-campanas">Campañas</button>
+      <button role="tab" id="tab-simulador" aria-selected="false" aria-controls="p-simulador">Simulador</button>
+      <button role="tab" id="tab-api" aria-selected="false" aria-controls="p-api">API</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel active" id="p-cliente" role="tabpanel" aria-labelledby="tab-cliente"></section>
+  <section class="panel" id="p-sala" role="tabpanel" aria-labelledby="tab-sala"></section>
+  <section class="panel" id="p-campanas" role="tabpanel" aria-labelledby="tab-campanas"></section>
+  <section class="panel" id="p-simulador" role="tabpanel" aria-labelledby="tab-simulador"></section>
+  <section class="panel" id="p-api" role="tabpanel" aria-labelledby="tab-api"></section>
+</main>
+
+<details id="apilog">
+  <summary><b>Registro de la API</b> <span class="muted small" id="apilog-count">0 llamadas</span> <span class="muted small">· cada acción de la pantalla es una llamada real al servidor</span></summary>
+  <div class="entries" id="apilog-entries"></div>
+</details>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
