@@ -49,6 +49,35 @@
         "--strictPort"
       ],
       "port": 5190
+    },
+    {
+      "name": "tridom-garage",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tridom-garage/node_modules/vite/bin/vite.js",
+        "tridom-garage",
+        "--config",
+        "tridom-garage/vite.config.js",
+        "--port",
+        "5200",
+        "--strictPort"
+      ],
+      "port": 5200
+    },
+    {
+      "name": "tridom-garage-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tridom-garage/node_modules/vite/bin/vite.js",
+        "preview",
+        "tridom-garage",
+        "--config",
+        "tridom-garage/vite.config.js",
+        "--port",
+        "4200",
+        "--strictPort"
+      ],
+      "port": 4200
     }
   ]
 }

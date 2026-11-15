@@ -1,0 +1,158 @@
+export default {
+  common: {
+    language: 'Idioma', demo: 'DEMO', demoNote: 'Datos ficticios de demostración', close: 'Cerrar', cancel: 'Cancelar', save: 'Guardar', add: 'Añadir',
+    delete: 'Borrar', back: 'Volver', loading: 'Cargando…', optional: 'opcional', skip: 'Saltar al contenido', home: 'Inicio', pending: 'FALTA',
+  },
+  states: {
+    received: 'Recibido', diagnosis: 'En diagnóstico', awaiting_approval: 'Esperando aprobación', awaiting_part: 'Esperando pieza',
+    in_repair: 'En reparación', ready: 'Listo para recoger', delivered: 'Entregado',
+  },
+  locations: {
+    reception: 'Recepción', lift1: 'Elevador 1', lift2: 'Elevador 2', lift3: 'Elevador 3', pit: 'Foso', diagnosis_bay: 'Bahía de diagnóstico',
+    waiting: 'Zona de espera', parking: 'Aparcamiento exterior', pickup: 'Zona de recogida', none: 'Fuera del taller',
+  },
+  bodies: {
+    city: 'Utilitario', compact: 'Compacto', sedan: 'Berlina', wagon: 'Familiar', suv_small: 'SUV pequeño', suv_large: 'SUV grande',
+    coupe: 'Coupé', mpv: 'Monovolumen', van: 'Furgoneta', pickup: 'Pick-up',
+  },
+  partStates: { needed: 'Necesaria', ordered: 'Pedida', arrived: 'Llegada' },
+  operators: { office: 'Oficina', mechanic1: 'Mecánico 1', mechanic2: 'Mecánico 2' },
+  errors: {
+    required: 'Este campo es obligatorio.', too_short: 'Escribe al menos 10 caracteres.', too_long: 'El texto es demasiado largo.',
+    plate_format: 'Revisa la matrícula: 4 cifras y 3 letras (1234 BCD) o formato antiguo.', phone_format: 'Revisa el teléfono: entre 9 y 15 cifras.',
+    email_format: 'Revisa el correo electrónico.', cost_format: 'Escribe un importe válido, por ejemplo 120,50.', date_format: 'Revisa la fecha.',
+    invalid: 'El dato no es válido.', pin_format: 'El PIN tiene entre 4 y 8 cifras.', last4_format: 'Escribe las 4 últimas cifras del teléfono.',
+    generic: 'No se ha podido completar. Inténtalo de nuevo.', network: 'Sin conexión. Inténtalo de nuevo en un momento.',
+    rate_limited: 'Demasiados intentos. Espera un momento y vuelve a probar.', locked: 'Acceso bloqueado por intentos fallidos. Vuelve a intentarlo en {min} min.',
+    bad_credentials: 'El PIN no es correcto.', location_full: 'Esa ubicación está ocupada.', plate_exists: 'Ya hay un coche en el taller con esa matrícula.',
+    workshop_full: 'No queda ninguna plaza libre en el taller.', validation: 'Revisa los campos marcados.', not_configured: 'Este servicio todavía no está configurado.',
+  },
+  scene: {
+    label: 'Escena 3D del taller. La lista de coches con su estado está disponible como texto.', controls: 'Controles de la cámara',
+    zoomIn: 'Acercar', zoomOut: 'Alejar', rotateL: 'Girar a la izquierda', rotateR: 'Girar a la derecha', reframe: 'Reencuadrar',
+    loading: 'Cargando la escena del taller', fallbackTitle: 'Vista en lista', fallbackNote: 'La escena 3D no está disponible en este dispositivo. Aquí tienes los mismos coches y estados.',
+    simulate: 'Simulación', simStop: 'Parar simulación', simNote: 'Reproduce una jornada con coches de demostración.', listTitle: 'Coches en el taller', empty: 'No hay coches en el taller.',
+    show3d: 'Volver a la escena 3D', showList: 'Ver como lista',
+  },
+  nav: { how: 'Cómo funciona', panel: 'Panel', customer: 'Cliente', scene: 'Escena', privacy: 'Privacidad', contact: 'Contacto', openPanel: 'Abrir el panel demo', menu: 'Menú' },
+  landing: {
+    hero: {
+      title: ['Cada coche del taller,', 'a la vista.'],
+      lead: 'El mecánico marca el estado con un toque. El cliente lo consulta con su matrícula y ve su coche en la escena del taller, sin llamar para preguntar.',
+      cta: 'Probar el panel demo', cta2: 'Ver la consulta del cliente', tag: 'Demostración con datos ficticios', hint: 'Desliza para recorrer el taller',
+    },
+    tour: {
+      title: 'Recorrido por el taller',
+      steps: [
+        { sign: 'ENTRADA', title: 'El coche entra y queda registrado', text: 'Matrícula, marca y modelo. Desde ese momento tiene su sitio en la escena.' },
+        { sign: 'DIAGNÓSTICO', title: 'Se revisa en la bahía de diagnóstico', text: 'El estado cambia con un toque y lo ven a la vez la oficina y el taller.' },
+        { sign: 'ELEVADOR 1', title: 'En reparación, sobre el elevador', text: 'El coche sube con el mecánico al lado. Nada se teletransporta: cada movimiento se ve entero.' },
+        { sign: 'ESPERA', title: 'Si falta algo, se nota', text: 'Esperando pieza o aprobación del presupuesto: el coche espera con su aviso en ámbar.' },
+        { sign: 'RECOGIDA', title: 'Listo: a la zona de recogida', text: 'El cliente ve que ya puede pasar a por su coche.' },
+      ],
+    },
+    how: {
+      title: 'Cómo funciona',
+      steps: [
+        { title: 'El taller da de alta el coche', text: 'Matrícula, marca y modelo del catálogo. El teléfono del cliente es opcional.' },
+        { title: 'Un toque por cada cambio', text: 'Botones grandes de estado y de ubicación, pensados para tocar con guantes desde un iPad, un móvil o el ordenador.' },
+        { title: 'El cliente consulta con su matrícula', text: 'Entra con el QR de recepción, escribe su matrícula y ve su coche, y solo el suyo.' },
+      ],
+    },
+    panel: {
+      title: 'Un panel hecho para el taller', lead: 'Sin menús anidados. Lo que se toca más veces está a un toque.',
+      points: [
+        ['Objetivos de 56 px', 'Botones grandes de estado y ubicación, con teclado numérico o de matrícula según el campo.'],
+        ['Piezas pendientes', 'Añade la pieza, márcala como pedida o llegada y pon la fecha estimada.'],
+        ['Sin conexión', 'Si se cae la red, los cambios se guardan en el dispositivo y se envían al volver.'],
+        ['Varios dispositivos', 'Oficina y taller ven lo mismo en tiempo real. Si coinciden, gana el último cambio y se avisa.'],
+      ],
+      try: 'Tocar un estado', tryNote: 'Prueba: cambia el estado y mira lo que lee el cliente.',
+    },
+    customer: {
+      title: 'El cliente ve su coche, y solo el suyo', lead: 'Un campo de matrícula. Sin listas, sin búsquedas parciales.',
+      points: [
+        ['Lenguaje claro', '«Tu coche está en reparación». «Falta una pieza: llegada estimada el…».'],
+        ['Los demás, anónimos', 'El resto de coches son siluetas neutras: sin matrícula, sin modelo y sin datos al pulsarlos.'],
+        ['El coste, con un segundo dato', 'Solo se muestra tras escribir las 4 últimas cifras del teléfono que registró el taller.'],
+      ],
+      cardPlate: 'Matrícula de ejemplo',
+    },
+    catalog: {
+      title: 'Siluetas con proporciones reales',
+      lead: 'Cada modelo del catálogo usa la silueta de su categoría, escalada a su largo, ancho y alto. Es un parecido por categoría, no una réplica exacta de cada modelo.',
+      pick: 'Modelo del catálogo', length: 'Largo', width: 'Ancho', height: 'Alto', count: '{n} modelos habituales en España y la opción «Otro» con tipo de carrocería.',
+      dimsNote: 'Medidas aproximadas publicadas por cada fabricante para la generación indicada.',
+    },
+    privacy: {
+      title: 'Privacidad desde el diseño',
+      points: [
+        ['Datos aislados por taller', 'Cada taller solo ve sus coches. El navegador del cliente nunca accede a las tablas.'],
+        ['Respuestas idénticas', '«No encontrada» y «dato incorrecto» devuelven lo mismo y tardan lo mismo, con límite de intentos.'],
+        ['Borrado automático', 'Los datos se borran tras la entrega según la retención que elija el taller (30 días por defecto).'],
+        ['Sin datos en las direcciones', 'La matrícula y el teléfono nunca viajan en la URL ni se guardan en registros.'],
+      ],
+      link: 'Leer la política de privacidad',
+    },
+    band: { text: 'El panel y la consulta de esta web funcionan con un «Taller Demo» de datos ficticios.', cta: 'Abrir el panel demo', cta2: 'Abrir la consulta' },
+    contact: {
+      title: '¿Lo vemos en tu taller?',
+      lead: 'Tridom Garage es un producto de Tridom, agencia de webs y servicios de IA a medida en Valencia. Cuéntanos cómo trabaja tu taller.',
+      pricing: 'Tarifas: todavía sin publicar.',
+      name: 'Tu nombre', workshop: 'Nombre del taller', email: 'Correo electrónico', phone: 'Teléfono', message: 'Cómo trabaja tu taller', messageHint: 'Mínimo 10 caracteres.',
+      consent: 'He leído la política de privacidad y acepto que Tridom use estos datos para responderme.', submit: 'Enviar mensaje', sending: 'Enviando…',
+      okDemo: 'Mensaje validado. El envío de este formulario todavía no está conectado a un buzón (pendiente de Tridom).',
+    },
+    footer: { by: 'Un producto de Tridom · Valencia', legal: 'Privacidad', demo: 'Web de demostración. Nombre provisional.', rights: 'Los nombres de marcas y modelos se citan solo para identificar vehículos.' },
+  },
+  panel: {
+    title: 'Panel del taller', login: { title: 'Acceso al panel', code: 'Código del taller', pin: 'PIN del taller', operator: 'Quién eres', submit: 'Entrar', demo: 'PIN de la demo: {pin} · Código: {code}' },
+    logout: 'Salir', tabs: { scene: 'Escena', list: 'Coches' }, newCar: 'Nuevo coche', search: 'Filtrar por estado', all: 'Todos', active: 'En el taller', deliveredTab: 'Entregados',
+    offline: 'Sin conexión', offlineQueue: '{n} cambios pendientes de enviar', online: 'Conectado', live: 'Tiempo real', synced: 'Conexión recuperada: {n} cambios enviados.',
+    syncFailed: 'Un cambio pendiente no se pudo aplicar.', conflictMine: 'Este coche lo acababa de cambiar {who}. Se ha aplicado tu cambio, que es el último.',
+    conflictOther: 'Otro dispositivo ha cambiado el coche {plate}. Se muestra el último cambio.', pendingSync: 'Pendiente de enviar',
+    empty: 'Todavía no hay coches. Pulsa «Nuevo coche» para dar de alta el primero.', selectHint: 'Toca un coche de la lista o de la escena para cambiar su estado.',
+    form: {
+      title: 'Nuevo coche', plate: 'Matrícula', plateHint: 'Ejemplo: 1234 BCD', foreign: 'Matrícula de otro país', model: 'Marca y modelo', modelHint: 'Escribe para buscar en el catálogo',
+      other: 'Otro (no está en el catálogo)', make: 'Marca', modelName: 'Modelo', body: 'Tipo de carrocería', phone: 'Teléfono del cliente',
+      phoneHint: 'Opcional. Sirve para que el cliente pueda ver el coste.', submit: 'Dar de alta', noMatch: 'Sin coincidencias. Elige «Otro».',
+    },
+    detail: {
+      state: 'Estado', location: 'Ubicación', occupied: 'Ocupado', parts: 'Piezas pendientes', noParts: 'Sin piezas pendientes.', addPart: 'Añadir pieza',
+      partDesc: 'Descripción de la pieza', partEta: 'Fecha estimada', markOrdered: 'Marcar pedida', markArrived: 'Marcar llegada', removePart: 'Quitar pieza',
+      notes: 'Notas internas', notesHint: 'Opcional. Si escribes, mínimo 10 caracteres. No las ve el cliente.', cost: 'Coste', costEstimate: 'Estimado (€)', costFinal: 'Final (€)',
+      eta: 'Salida estimada', phone: 'Teléfono', phoneMasked: 'Termina en {last4}', noPhone: 'Sin teléfono: el cliente no verá el coste.', history: 'Historial',
+      entered: 'Entrada', saved: 'Guardado', saveNotes: 'Guardar notas y coste', data: 'Datos del cliente', export: 'Exportar datos', remove: 'Borrar coche y datos',
+      removeConfirm: 'Pulsa otra vez para borrar definitivamente', hist: { created: 'Alta del coche', state: 'Estado: {from} → {to}', location: 'Ubicación: {from} → {to}', part: 'Pieza: {to}' },
+    },
+    settings: {
+      title: 'Ajustes del taller', retention: 'Días de retención tras la entrega', retentionHint: 'Pasado ese plazo, el coche y sus datos se borran solos.', run: 'Aplicar retención ahora',
+      deleted: 'Retención aplicada: {n} coches borrados.', qr: 'QR para recepción', qrHint: 'El cliente lo escanea y escribe su matrícula.', open: 'Abrir la consulta',
+    },
+  },
+  consulta: {
+    title: 'Consulta tu coche', lead: 'Escribe la matrícula para ver cómo va.', plate: 'Matrícula', submit: 'Consultar', checking: 'Consultando…',
+    notAvailable: 'No hemos podido mostrar esos datos. Revisa lo que has escrito o pregunta en el taller.', unknownWorkshop: 'Este enlace no corresponde a ningún taller.',
+    status: {
+      received: 'Tu coche está en el taller, recibido y pendiente de revisión.', diagnosis: 'Estamos revisando tu coche para saber qué necesita.',
+      awaiting_approval: 'Tenemos el presupuesto y esperamos tu aprobación para empezar.', awaiting_part: 'Falta una pieza para seguir con la reparación.',
+      in_repair: 'Tu coche está en reparación.', ready: 'Tu coche ya está listo, puedes pasar a recogerlo.', delivered: 'Tu coche ya fue entregado.',
+    },
+    where: 'Dónde está', eta: 'Salida estimada: {date}', parts: 'Piezas pendientes', partEta: 'llegada estimada el {date}', partNoEta: 'sin fecha estimada todavía',
+    verify: { title: 'Ver el coste', label: 'Últimas 4 cifras de tu teléfono', hint: 'El que diste en el taller.', submit: 'Ver coste', estimate: 'Presupuesto estimado', final: 'Importe final', none: 'El taller todavía no ha indicado ningún importe.' },
+    again: 'Consultar otra matrícula', anon: 'Los demás coches se muestran como siluetas anónimas.', privacy: 'Privacidad', updated: 'Se actualiza solo.',
+  },
+  privacy: {
+    title: 'Política de privacidad', updated: 'Borrador pendiente de completar con los datos del responsable.',
+    sections: [
+      ['Quién trata tus datos', 'Si consultas el estado de tu coche, el responsable del tratamiento es el taller que lo repara. Tridom presta el software como encargado del tratamiento y solo actúa siguiendo las instrucciones del taller. Datos del responsable (razón social, NIF, dirección y contacto): FALTA. Datos de Tridom como encargado (razón social, NIF y contacto): FALTA.'],
+      ['Qué datos se tratan', 'Matrícula, marca y modelo del vehículo; estado y ubicación dentro del taller; piezas pendientes; notas internas del taller; coste estimado y final si el taller los indica; y, si lo facilitas, tu teléfono. No se piden nombre, dirección ni documentos.'],
+      ['Para qué y con qué base legal', 'Para gestionar la reparación e informarte del estado de tu vehículo, sobre la base de la ejecución del encargo de reparación (art. 6.1.b RGPD). El teléfono solo se usa para comprobar que eres tú antes de mostrar el coste.'],
+      ['Cuánto tiempo', 'Los datos se borran automáticamente cuando pasa el plazo de retención que fija el taller tras la entrega del vehículo (30 días por defecto). El taller puede borrarlos antes si lo pides.'],
+      ['Quién los ve', 'El personal del taller desde su panel. En la consulta pública solo se muestra tu coche a quien escribe tu matrícula; el coste, solo tras escribir las 4 últimas cifras de tu teléfono. Los demás coches aparecen como siluetas anónimas. Proveedor de alojamiento y base de datos: FALTA (previsto Supabase, con servidores en la UE).'],
+      ['Tus derechos', 'Puedes pedir al taller el acceso, la rectificación, la supresión, la limitación, la oposición y la portabilidad de tus datos. El panel permite exportarlos y borrarlos. También puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).'],
+      ['Seguridad', 'Los datos de cada taller están aislados; el acceso al panel requiere PIN, con bloqueo tras varios fallos; las consultas públicas tienen límite de intentos; y la matrícula o el teléfono nunca viajan en la dirección de la página.'],
+      ['Formulario de contacto de esta web', 'Si escribes a Tridom desde la web, tus datos se usan solo para responderte. Destino y plazo de conservación del formulario: FALTA.'],
+    ],
+  },
+};

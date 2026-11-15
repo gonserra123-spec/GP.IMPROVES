@@ -304,3 +304,15 @@ Verificación Playwright: logo visible en el fotograma 0. Tras el primer paso de
 - **Comprobado**: ninguna foto demo se amplió al descargar (originales de 3400 a 7008 px de ancho).
 - **Verificación (Playwright, 1440 y 390)**: cajas a 1440: Baño 741 × 926, Eixample 741 × 494 (`-1280`, 1536 px disponibles para Retina), Ruzafa 1430 × 715 (`-1920`), Benimaclet 741 × 926 (`-1280`). Consola y red sin errores.
 - **Medidas recomendadas** si el cliente quiere sustituir fotos: vertical 4:5 (Baño, Benimaclet) ≥ 1600 × 2000 px, ideal 2400 × 3000; horizontal a sangre 2:1 (Ruzafa) ≥ 2880 × 1440 px; Eixample 3:2 ≥ 1600 × 1067 px, ideal 2400 × 1600 (las tres fases iguales).
+
+---
+
+## Tridom Garage · «plano técnico de taller» (2026-11-15)
+
+**Cliente**: Tridom (producto propio, nombre provisional). **Estilo**: plano técnico de taller (dado; Fases -1 y 1 omitidas). **Arquitectura**: B) React + Vite con React Three Fiber + drei y Zustand. **Movimiento**: nivel 3 en la landing, BASE en panel y consulta. **Tipografía**: Figtree Variable + Saira Condensed. **Color**: blanco, papel `#F4F7FC`, azul `#2F6FED` y azul oscuro `#0B2A5B`; ámbar y verde solo semánticos.
+
+**Piezas de movimiento** (por técnica; la correspondencia con los códigos M queda por confirmar): hero WebGL con recorrido de cámara ligado al scroll (firma), raíl de capítulos fijado, capas a distinta velocidad, tarjeta del cliente que cambia de estado con el scroll, perfil del coche que se dibuja con el scroll, cinta de rótulos ligada a la velocidad de scroll, revelado de titulares por línea.
+
+**Seguridad**: 6 hallazgos de security-audit en modo guía corregidos (sesiones sin tope, reinicio de demo tras proxy, tope diario de verificación del teléfono, entre otros). **Codex**: no pudo leer el repo y revisó diez ficheros pegados; 14 puntos, 2 altos en la parte de Supabase, corregidos sin poder probarlos (no hay credenciales).
+
+Detalle completo, verificación y pendientes en `tridom-garage/docs/skills-log.md`.

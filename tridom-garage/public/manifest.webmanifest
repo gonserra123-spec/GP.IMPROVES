@@ -1,0 +1,17 @@
+{
+  "name": "Tridom Garage · Panel del taller",
+  "short_name": "Tridom Garage",
+  "description": "Seguimiento de vehículos para talleres mecánicos.",
+  "lang": "es",
+  "start_url": "/panel",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F7FC",
+  "theme_color": "#0B2A5B",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

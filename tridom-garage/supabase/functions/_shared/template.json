@@ -1,0 +1,18 @@
+{
+  "id": "demo-nave-2e-foso",
+  "lifts": 2,
+  "pit": true,
+  "building": { "w": 30, "d": 18, "wallH": 4.2 },
+  "aisleZ": 11,
+  "laneZ": 22.5,
+  "entryX": 3.5,
+  "exitX": 26.5,
+  "bayZ": 4.5,
+  "bays": { "lift1": 7, "lift2": 11, "pit": 15, "diagnosis_bay": 19 },
+  "southZ": 15,
+  "south": { "reception": [9, 13], "waiting": [17, 21] },
+  "outsideZ": 27,
+  "outside": { "parking": [8, 10.8, 13.6, 16.4], "pickup": [20.5, 23.3] },
+  "spawnX": -16,
+  "despawnX": 46
+}

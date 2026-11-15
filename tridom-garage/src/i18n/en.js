@@ -1,0 +1,158 @@
+export default {
+  common: {
+    language: 'Language', demo: 'DEMO', demoNote: 'Fictional demo data', close: 'Close', cancel: 'Cancel', save: 'Save', add: 'Add',
+    delete: 'Delete', back: 'Back', loading: 'Loading…', optional: 'optional', skip: 'Skip to content', home: 'Home', pending: 'MISSING',
+  },
+  states: {
+    received: 'Received', diagnosis: 'In diagnosis', awaiting_approval: 'Awaiting approval', awaiting_part: 'Awaiting part',
+    in_repair: 'In repair', ready: 'Ready for pickup', delivered: 'Delivered',
+  },
+  locations: {
+    reception: 'Reception', lift1: 'Lift 1', lift2: 'Lift 2', lift3: 'Lift 3', pit: 'Pit', diagnosis_bay: 'Diagnosis bay',
+    waiting: 'Waiting area', parking: 'Outdoor parking', pickup: 'Pickup area', none: 'Out of the workshop',
+  },
+  bodies: {
+    city: 'City car', compact: 'Compact', sedan: 'Saloon', wagon: 'Estate', suv_small: 'Small SUV', suv_large: 'Large SUV',
+    coupe: 'Coupé', mpv: 'MPV', van: 'Van', pickup: 'Pick-up',
+  },
+  partStates: { needed: 'Needed', ordered: 'Ordered', arrived: 'Arrived' },
+  operators: { office: 'Office', mechanic1: 'Mechanic 1', mechanic2: 'Mechanic 2' },
+  errors: {
+    required: 'This field is required.', too_short: 'Write at least 10 characters.', too_long: 'The text is too long.',
+    plate_format: 'Check the plate: 4 digits and 3 letters (1234 BCD) or the old format.', phone_format: 'Check the phone number: 9 to 15 digits.',
+    email_format: 'Check the email address.', cost_format: 'Enter a valid amount, for example 120.50.', date_format: 'Check the date.',
+    invalid: 'That value is not valid.', pin_format: 'The PIN has 4 to 8 digits.', last4_format: 'Enter the last 4 digits of the phone number.',
+    generic: 'That could not be completed. Please try again.', network: 'No connection. Try again in a moment.',
+    rate_limited: 'Too many attempts. Wait a moment and try again.', locked: 'Access locked after failed attempts. Try again in {min} min.',
+    bad_credentials: 'The PIN is not correct.', location_full: 'That location is taken.', plate_exists: 'A car with that plate is already in the workshop.',
+    workshop_full: 'There is no free space left in the workshop.', validation: 'Check the highlighted fields.', not_configured: 'This service is not set up yet.',
+  },
+  scene: {
+    label: '3D scene of the workshop. The list of cars and their status is also available as text.', controls: 'Camera controls',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out', rotateL: 'Rotate left', rotateR: 'Rotate right', reframe: 'Reframe',
+    loading: 'Loading the workshop scene', fallbackTitle: 'List view', fallbackNote: 'The 3D scene is not available on this device. Here are the same cars and statuses.',
+    simulate: 'Simulation', simStop: 'Stop simulation', simNote: 'Plays a working day with demo cars.', listTitle: 'Cars in the workshop', empty: 'There are no cars in the workshop.',
+    show3d: 'Back to the 3D scene', showList: 'View as a list',
+  },
+  nav: { how: 'How it works', panel: 'Panel', customer: 'Customer', scene: 'Scene', privacy: 'Privacy', contact: 'Contact', openPanel: 'Open the demo panel', menu: 'Menu' },
+  landing: {
+    hero: {
+      title: ['Every car in the workshop,', 'in plain sight.'],
+      lead: 'The mechanic sets the status with one tap. The customer checks it with their number plate and sees their car in the workshop scene, without phoning to ask.',
+      cta: 'Try the demo panel', cta2: 'See the customer view', tag: 'Demo with fictional data', hint: 'Scroll to tour the workshop',
+    },
+    tour: {
+      title: 'A tour of the workshop',
+      steps: [
+        { sign: 'ENTRANCE', title: 'The car drives in and is logged', text: 'Plate, make and model. From then on it has its place in the scene.' },
+        { sign: 'DIAGNOSIS', title: 'It is checked in the diagnosis bay', text: 'The status changes with one tap, and office and shop floor see it at once.' },
+        { sign: 'LIFT 1', title: 'In repair, up on the lift', text: 'The car goes up with the mechanic beside it. Nothing teleports: every move is shown in full.' },
+        { sign: 'WAITING', title: 'If something is missing, it shows', text: 'Awaiting a part or quote approval: the car waits with an amber marker.' },
+        { sign: 'PICKUP', title: 'Ready: over to the pickup area', text: 'The customer sees the car can be collected.' },
+      ],
+    },
+    how: {
+      title: 'How it works',
+      steps: [
+        { title: 'The workshop logs the car', text: 'Plate, make and model from the catalogue. The customer phone number is optional.' },
+        { title: 'One tap per change', text: 'Large status and location buttons, built to be tapped with gloves on an iPad, a phone or a computer.' },
+        { title: 'The customer checks with their plate', text: 'They scan the QR at reception, type their plate and see their car, and only theirs.' },
+      ],
+    },
+    panel: {
+      title: 'A panel built for the shop floor', lead: 'No nested menus. Whatever gets tapped most is one tap away.',
+      points: [
+        ['56 px targets', 'Large status and location buttons, with a numeric or plate keyboard depending on the field.'],
+        ['Pending parts', 'Add the part, mark it ordered or arrived, and set the expected date.'],
+        ['Offline', 'If the network drops, changes are kept on the device and sent when it is back.'],
+        ['Several devices', 'Office and shop floor see the same thing in real time. If they collide, the last change wins and both are told.'],
+      ],
+      try: 'Tap a status', tryNote: 'Try it: change the status and see what the customer reads.',
+    },
+    customer: {
+      title: 'The customer sees their car, and only theirs', lead: 'One plate field. No lists, no partial search.',
+      points: [
+        ['Plain language', '“Your car is being repaired.” “A part is missing: expected on…”.'],
+        ['Everyone else, anonymous', 'The other cars are neutral silhouettes: no plate, no model, and nothing happens when they are clicked.'],
+        ['Cost behind a second detail', 'It only shows after entering the last 4 digits of the phone number the workshop has on file.'],
+      ],
+      cardPlate: 'Example plate',
+    },
+    catalog: {
+      title: 'Silhouettes with real proportions',
+      lead: 'Each catalogue model uses the silhouette of its category, scaled to its length, width and height. It is a likeness by category, not an exact replica of each model.',
+      pick: 'Catalogue model', length: 'Length', width: 'Width', height: 'Height', count: '{n} models common in Spain, plus “Other” with a body type.',
+      dimsNote: 'Approximate dimensions published by each manufacturer for the generation shown.',
+    },
+    privacy: {
+      title: 'Privacy by design',
+      points: [
+        ['Data isolated per workshop', 'Each workshop only sees its own cars. The customer browser never reaches the tables.'],
+        ['Identical answers', '“Not found” and “wrong detail” return the same thing in the same time, with an attempt limit.'],
+        ['Automatic deletion', 'Data is deleted after delivery following the retention the workshop chooses (30 days by default).'],
+        ['Nothing in the address bar', 'The plate and the phone number never travel in the URL and are never written to logs.'],
+      ],
+      link: 'Read the privacy policy',
+    },
+    band: { text: 'The panel and the customer view on this site run on a “Taller Demo” with fictional data.', cta: 'Open the demo panel', cta2: 'Open the customer view' },
+    contact: {
+      title: 'Shall we look at it in your workshop?',
+      lead: 'Tridom Garage is a product by Tridom, an agency for custom websites and AI services in Valencia. Tell us how your workshop runs.',
+      pricing: 'Pricing: not published yet.',
+      name: 'Your name', workshop: 'Workshop name', email: 'Email', phone: 'Phone', message: 'How your workshop runs', messageHint: 'At least 10 characters.',
+      consent: 'I have read the privacy policy and agree that Tridom uses these details to reply to me.', submit: 'Send message', sending: 'Sending…',
+      okDemo: 'Message validated. This form is not connected to an inbox yet (pending on Tridom’s side).',
+    },
+    footer: { by: 'A product by Tridom · Valencia', legal: 'Privacy', demo: 'Demo website. Working name.', rights: 'Make and model names are quoted only to identify vehicles.' },
+  },
+  panel: {
+    title: 'Workshop panel', login: { title: 'Panel access', code: 'Workshop code', pin: 'Workshop PIN', operator: 'Who are you', submit: 'Sign in', demo: 'Demo PIN: {pin} · Code: {code}' },
+    logout: 'Sign out', tabs: { scene: 'Scene', list: 'Cars' }, newCar: 'New car', search: 'Filter by status', all: 'All', active: 'In the workshop', deliveredTab: 'Delivered',
+    offline: 'Offline', offlineQueue: '{n} changes waiting to be sent', online: 'Connected', live: 'Real time', synced: 'Back online: {n} changes sent.',
+    syncFailed: 'A pending change could not be applied.', conflictMine: '{who} had just changed this car. Your change was applied, as it is the latest.',
+    conflictOther: 'Another device changed car {plate}. The latest change is shown.', pendingSync: 'Waiting to be sent',
+    empty: 'No cars yet. Tap “New car” to log the first one.', selectHint: 'Tap a car in the list or in the scene to change its status.',
+    form: {
+      title: 'New car', plate: 'Number plate', plateHint: 'Example: 1234 BCD', foreign: 'Plate from another country', model: 'Make and model', modelHint: 'Type to search the catalogue',
+      other: 'Other (not in the catalogue)', make: 'Make', modelName: 'Model', body: 'Body type', phone: 'Customer phone',
+      phoneHint: 'Optional. It lets the customer see the cost.', submit: 'Log car', noMatch: 'No matches. Choose “Other”.',
+    },
+    detail: {
+      state: 'Status', location: 'Location', occupied: 'Taken', parts: 'Pending parts', noParts: 'No pending parts.', addPart: 'Add part',
+      partDesc: 'Part description', partEta: 'Expected date', markOrdered: 'Mark ordered', markArrived: 'Mark arrived', removePart: 'Remove part',
+      notes: 'Internal notes', notesHint: 'Optional. If you write, at least 10 characters. The customer never sees them.', cost: 'Cost', costEstimate: 'Estimate (€)', costFinal: 'Final (€)',
+      eta: 'Expected ready date', phone: 'Phone', phoneMasked: 'Ends in {last4}', noPhone: 'No phone: the customer will not see the cost.', history: 'History',
+      entered: 'Arrived', saved: 'Saved', saveNotes: 'Save notes and cost', data: 'Customer data', export: 'Export data', remove: 'Delete car and data',
+      removeConfirm: 'Tap again to delete for good', hist: { created: 'Car logged', state: 'Status: {from} → {to}', location: 'Location: {from} → {to}', part: 'Part: {to}' },
+    },
+    settings: {
+      title: 'Workshop settings', retention: 'Retention days after delivery', retentionHint: 'After that, the car and its data are deleted automatically.', run: 'Apply retention now',
+      deleted: 'Retention applied: {n} cars deleted.', qr: 'QR for reception', qrHint: 'The customer scans it and types their plate.', open: 'Open the customer view',
+    },
+  },
+  consulta: {
+    title: 'Check your car', lead: 'Type your number plate to see how it is going.', plate: 'Number plate', submit: 'Check', checking: 'Checking…',
+    notAvailable: 'We could not show those details. Check what you typed or ask at the workshop.', unknownWorkshop: 'This link does not belong to any workshop.',
+    status: {
+      received: 'Your car is at the workshop, received and waiting to be checked.', diagnosis: 'We are checking your car to find out what it needs.',
+      awaiting_approval: 'The quote is ready and we are waiting for your approval to start.', awaiting_part: 'A part is missing before the repair can continue.',
+      in_repair: 'Your car is being repaired.', ready: 'Your car is ready, you can come and collect it.', delivered: 'Your car has already been handed over.',
+    },
+    where: 'Where it is', eta: 'Expected ready date: {date}', parts: 'Pending parts', partEta: 'expected on {date}', partNoEta: 'no expected date yet',
+    verify: { title: 'See the cost', label: 'Last 4 digits of your phone', hint: 'The one you gave the workshop.', submit: 'See cost', estimate: 'Estimated quote', final: 'Final amount', none: 'The workshop has not entered an amount yet.' },
+    again: 'Check another plate', anon: 'The other cars are shown as anonymous silhouettes.', privacy: 'Privacy', updated: 'Updates on its own.',
+  },
+  privacy: {
+    title: 'Privacy policy', updated: 'Draft, pending the controller’s details.',
+    sections: [
+      ['Who handles your data', 'If you check the status of your car, the data controller is the workshop repairing it. Tridom provides the software as a data processor and only acts on the workshop’s instructions. Controller details (company name, tax ID, address and contact): MISSING. Tridom’s details as processor (company name, tax ID and contact): MISSING.'],
+      ['What data is handled', 'Number plate, make and model; status and location inside the workshop; pending parts; the workshop’s internal notes; estimated and final cost if the workshop enters them; and your phone number if you provide it. No name, address or documents are requested.'],
+      ['Purpose and legal basis', 'To manage the repair and tell you the status of your vehicle, on the basis of performing the repair order (Art. 6.1.b GDPR). The phone number is only used to check it is you before showing the cost.'],
+      ['How long', 'Data is deleted automatically once the retention period set by the workshop has passed after delivery (30 days by default). The workshop can delete it sooner if you ask.'],
+      ['Who sees it', 'Workshop staff, from their panel. The public view only shows your car to whoever types your plate; the cost only after typing the last 4 digits of your phone. Other cars appear as anonymous silhouettes. Hosting and database provider: MISSING (Supabase planned, with EU servers).'],
+      ['Your rights', 'You can ask the workshop for access, rectification, erasure, restriction, objection and portability. The panel can export and delete your data. You can also lodge a complaint with the Spanish Data Protection Agency (aepd.es).'],
+      ['Security', 'Each workshop’s data is isolated; panel access needs a PIN, locked after several failures; public lookups are rate limited; and the plate or phone never travel in the page address.'],
+      ['Contact form on this site', 'If you write to Tridom from the site, your details are only used to reply. Destination and retention period of the form: MISSING.'],
+    ],
+  },
+};

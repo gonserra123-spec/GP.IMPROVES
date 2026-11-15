@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Tridom Garage · Seguimiento de vehículos para talleres</title>
+    <meta name="description" content="Software para talleres mecánicos: el taller marca el estado de cada coche y el cliente lo consulta con su matrícula, sobre una escena 3D del taller." />
+    <meta name="theme-color" content="#F4F7FC" />
+    <!-- FALTA: dominio definitivo. Sin él no se declara canonical ni og:url. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tridom Garage · Seguimiento de vehículos para talleres" />
+    <meta property="og:description" content="El taller marca el estado de cada coche; el cliente lo consulta con su matrícula." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Tridom Garage",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "provider": { "@type": "Organization", "name": "Tridom", "address": { "@type": "PostalAddress", "addressLocality": "Valencia", "addressCountry": "ES" } }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Tridom Garage necesita JavaScript para mostrar el panel y la escena del taller.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
