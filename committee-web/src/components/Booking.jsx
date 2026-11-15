@@ -3,29 +3,14 @@ import Reveal from './Reveal.jsx';
 import { langStore, nightStore, useStore, useTr } from '../lib/store.js';
 import { DAY, RULES, upcomingNights, fmtDate, eur, quote } from '../lib/nights.js';
 import { TABLES, ZONES, BOTTLES, MENU_CATEGORIES, priceFor } from '../content/data.js';
+import { MIN_TEXT, ageOn, CHECK } from '../lib/validate.js';
+import { postForm } from '../lib/api.js';
 
-export const MIN_TEXT = 10;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// La validación vive en lib/validate.js (la comparte el servidor); se reexporta aquí.
+export { MIN_TEXT, ageOn, CHECK };
 const CAT_EN = { Ginebra: 'Gin', Vodka: 'Vodka', Ron: 'Rum', Whisky: 'Whisky', Tequila: 'Tequila', Licores: 'Liqueurs', Champán: 'Champagne' };
 const VIEW = { first: [1000, 620], upper: [1000, 420] };
 const zoneName = (id) => ZONES.find((z) => z.id === id).name;
-
-export function ageOn(birth, dateISO) {
-  const b = new Date(`${birth}T12:00:00`); const d = new Date(`${dateISO}T12:00:00`);
-  let a = d.getFullYear() - b.getFullYear();
-  if (d.getMonth() < b.getMonth() || (d.getMonth() === b.getMonth() && d.getDate() < b.getDate())) a -= 1;
-  return a;
-}
-
-// Validadores compartidos con la lista. Devuelven un código que la interfaz traduce.
-export const CHECK = {
-  name: (v) => { const s = v.trim(); return !s ? 'required' : s.length < 2 ? 'name' : null; },
-  email: (v) => { const s = v.trim(); return !s ? 'required' : !EMAIL_RE.test(s) ? 'email' : null; },
-  phone: (v) => { const s = v.replace(/[\s.\-()]/g, ''); return !s ? 'required' : !/^\+?\d{9,15}$/.test(s) ? 'phone' : null; },
-  birth: (v) => (!v ? 'required' : Number.isNaN(new Date(v).getTime()) || new Date(v) > new Date() ? 'birth' : null),
-  text: (v) => { const s = v.trim(); return !s ? 'required' : s.length < MIN_TEXT ? 'minLen' : s.length > 600 ? 'maxLen' : null; },
-  consent: (v) => (v === true ? null : 'consent'),
-};
 
 export function useErrorText() {
   const tr = useTr();
@@ -108,9 +93,11 @@ export default function Booking({ pick }) {
   const [guests, setGuests] = useState(RULES.baseGuests);
   const [cart, setCart] = useState({});
   const [cat, setCat] = useState(MENU_CATEGORIES[0]);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', birth: '', text: '', consent: false });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', birth: '', text: '', consent: false, website: '' });
   const [errors, setErrors] = useState({});
   const [done, setDone] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState('');
   const formRef = useRef(null);
 
   const current = nights.find((n) => n.date === date) || nights[0];
@@ -138,20 +125,32 @@ export default function Booking({ pick }) {
   const set = (k) => (e) => { const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value; setForm((f) => ({ ...f, [k]: v })); setErrors((er) => ({ ...er, [k]: undefined })); setDone(false); };
   const selectTable = (id) => { setTableId(id); const t = TABLES.find((x) => x.id === id); if (t) setFloor(t.floor); setErrors((er) => ({ ...er, table: undefined })); };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (sending) return;
     const er = {};
     if (!table) er.table = 'table';
     for (const k of ['name', 'phone', 'email', 'birth', 'text', 'consent']) { const c = CHECK[k](form[k]); if (c) er[k] = c; }
     if (!er.birth && current && ageOn(form.birth, current.date) < RULES.minAge[type]) er.birth = 'age';
     setErrors(er);
-    const firstBad = ['table', 'name', 'phone', 'email', 'birth', 'text', 'consent'].find((k) => er[k]);
-    if (firstBad) {
+    setSendErr('');
+    const focusBad = (errs) => {
+      const firstBad = ['table', 'name', 'phone', 'email', 'birth', 'text', 'consent'].find((k) => errs[k]);
+      if (!firstBad) return false;
       const el = firstBad === 'table' ? document.getElementById('bk-table') : formRef.current.querySelector(`[name="${firstBad}"]`);
       el?.focus();
-      return;
-    }
-    setDone(true); // Maqueta: no hay envío real ni cobro.
+      return true;
+    };
+    if (focusBad(er)) return;
+    // El servidor vuelve a validar todo: la validación de cliente es solo comodidad.
+    setSending(true);
+    const res = await postForm('booking', { ...form, date: current.date, tableId, guests, cart });
+    setSending(false);
+    if (res.ok) { setDone(true); return; }
+    if (res.status === 422 && Object.keys(res.errors).length) { setErrors(res.errors); focusBad(res.errors); return; }
+    setSendErr(res.status === 429
+      ? tr('Demasiados intentos. Espera unos minutos y vuelve a probar.', 'Too many attempts. Wait a few minutes and try again.')
+      : tr('No hemos podido enviar la solicitud. Inténtalo de nuevo en un momento.', 'We could not send the request. Please try again in a moment.'));
   };
   const e = (k) => (errors[k] ? errText(errors[k], RULES.minAge[type]) : null);
 
@@ -271,7 +270,9 @@ export default function Booking({ pick }) {
             <label htmlFor="bk-consent">{tr('Acepto que el club use estos datos para gestionar mi reserva.', 'I agree to the club using these details to manage my booking.')}</label>
             {errors.consent ? <p className="field__err" id="bk-consent-err" role="alert">{e('consent')}</p> : null}
           </div>
-          <button className="btn btn--acc btn--big" type="submit"><span>{tr('Solicitar reserva', 'Request booking')}</span></button>
+          <div className="hp" aria-hidden="true"><label>Website<input type="text" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label></div>
+          <button className="btn btn--acc btn--big" type="submit" disabled={sending}><span>{tr('Solicitar reserva', 'Request booking')}</span></button>
+          {sendErr ? <p className="field__err" role="alert">{sendErr}</p> : null}
           {done && table ? (
             <div className="form__done" role="status">
               <b>{tr('Todo correcto. Esto es una maqueta: no se ha enviado nada ni se ha cobrado la señal.', 'All good. This is a mock-up: nothing was sent and no deposit was charged.')}</b>

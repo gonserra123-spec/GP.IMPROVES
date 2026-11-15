@@ -23,7 +23,7 @@ void main(){
   vec2 p=vec2((uv.x-.5)*asp,uv.y-.5);
   float haze=fbm(p*1.7+vec2(uTime*.035,-uTime*.06));
   float haze2=fbm(p*3.1-vec2(uTime*.05,uTime*.02));
-  vec3 col=vec3(.035)+uAcc*.05;
+  vec3 col=vec3(.05)+uAcc*.2;
   for(int i=0;i<7;i++){
     float fi=float(i);
     float ox=(fi/6.-.5)*asp*1.2;

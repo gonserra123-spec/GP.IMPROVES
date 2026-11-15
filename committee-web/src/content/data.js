@@ -23,6 +23,32 @@ export const CLUB = {
   ],
 };
 
+// Venta de entradas: la web NO vende entradas. Todos los botones de compra llevan al
+// apartado de Committee en la web de Grupo Salamandra, que gestiona la venta real.
+// [FALTA] URL exacta, pendiente de confirmar por Gonzalo. No inventar: mientras esté vacía,
+// los botones se muestran desactivados.
+export const TICKETS_URL = '';
+
+// Ubicación (OpenStreetMap, nodo «nightclub» en el nº 200 de Carrer de Sant Vicent Màrtir).
+export const MAP = {
+  lat: 39.4588216,
+  lon: -0.3835234,
+  zoom: 16,
+  label: 'Committee Club Valencia',
+  directions: 'https://www.google.com/maps/dir/?api=1&destination=39.4588216,-0.3835234&destination_place_name=Committee%20Club%20Valencia',
+};
+
+// Fotos. Ruta bajo /public (por ejemplo '/img/zonas/principal.jpg') o '' si aún no hay foto.
+// Solo fotos con licencia o generadas; si es una imagen generada, ponlo en `note`.
+export const PHOTOS = {
+  zones: {
+    principal: { src: '', alt: 'Mesas de la zona Principal', note: '' },
+    ghost: { src: '', alt: 'Zona Ghost con show de botellas', note: '' },
+    petit: { src: '', alt: 'Planta superior, Petit Comité', note: '' },
+  },
+  birthday: { src: '', alt: 'Celebración de cumpleaños con mesa en discoteca', note: '' },
+};
+
 // Reglas de la mesa, tal y como las publican las fuentes
 export const RULES = {
   baseGuests: 5,
@@ -37,7 +63,7 @@ export const RULES = {
 
 // Zonas VIP. El plano es ilustrativo: no disponemos del plano real de la sala.
 export const ZONES = [
-  { id: 'tarima', name: 'Tarima', floor: 'first', desc: 'A ras de pista, con barra propia', color: '#e8334f' },
+  { id: 'tarima', name: 'Tarima', floor: 'first', desc: 'A ras de pista, con barra propia', color: '#7060ff' },
   { id: 'principal', name: 'Principal', floor: 'first', desc: 'Detrás de la cabina del DJ', color: '#f5b544' },
   { id: 'ghost', name: 'Ghost', floor: 'first', desc: 'Acceso privado y show de botellas', color: '#a78bfa' },
   { id: 'petit', name: 'Petit Comité', floor: 'upper', desc: 'Planta superior · hip-hop y R&B', color: '#38bdf8' },

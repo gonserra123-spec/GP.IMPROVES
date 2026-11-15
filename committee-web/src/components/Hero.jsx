@@ -3,6 +3,7 @@ import LightCanvas from './LightCanvas.jsx';
 import { useTick, reducedMotion, scrollToId } from '../lib/hooks.js';
 import { clamp, range } from '../lib/spring.js';
 import { useTr } from '../lib/store.js';
+import TicketLink from './TicketLink.jsx';
 
 const ROWS = ['COM', 'MIT', 'TEE'];
 const MAX_SCALE = 30;
@@ -26,7 +27,7 @@ export default function Hero() {
     const vw = document.documentElement.clientWidth; const vh = window.innerHeight;
     el.style.fontSize = '100px'; el.style.left = '0px'; el.style.top = '0px';
     const r = el.getBoundingClientRect();
-    const fit = Math.min((vw * 0.94) / r.width, (vh * 0.7) / r.height);
+    const fit = Math.min((vw * 0.97) / r.width, (vh * 0.8) / r.height);
     const base = 100 * fit;
     const i = el.querySelector('[data-i]').getBoundingClientRect();
     m.current = {
@@ -99,8 +100,8 @@ export default function Hero() {
         <div className="hero__after" ref={after}>
           <p className="hero__claim">{tr('La noche de València cabe en una palabra.', 'Valencia’s night fits in one word.')}</p>
           <div className="hero__cta">
-            <a className="btn btn--acc" href="#entradas" onClick={(e) => { e.preventDefault(); scrollToId('entradas'); }}><span>{tr('Comprar entradas', 'Buy tickets')}</span></a>
-            <a className="btn" href="#reservados" onClick={(e) => { e.preventDefault(); scrollToId('reservados'); }}><span>{tr('Reservar mesa', 'Book a table')}</span></a>
+            <TicketLink className="btn btn--cta"><span>{tr('Comprar entradas', 'Buy tickets')}</span></TicketLink>
+            <a className="btn btn--cta2" href="#reservados" onClick={(e) => { e.preventDefault(); scrollToId('reservados'); }}><span>{tr('Reservar mesa', 'Book a table')}</span></a>
           </div>
         </div>
       </div>

@@ -4,7 +4,10 @@ import { useTick, useViewport, reducedMotion, scrollToId } from '../lib/hooks.js
 import { createSpring, clamp } from '../lib/spring.js';
 import { langStore, nightStore, setLang, useStore, useTr } from '../lib/store.js';
 import { NIGHTS, DAY, OPENS, CLOSES, CLUB, RULES, upcomingNights, nextOf, monthName, eur, tableFrom, zoneFrom } from '../lib/nights.js';
-import { TABLES, ZONES } from '../content/data.js';
+import { TABLES, ZONES, PHOTOS } from '../content/data.js';
+import TicketLink from './TicketLink.jsx';
+import Photo from './Photo.jsx';
+import CommitteeMap from './CommitteeMap.jsx';
 
 const go = (id) => (e) => { e.preventDefault(); scrollToId(id); };
 
@@ -31,7 +34,7 @@ export function Header() {
       <a className="nav__brand" href="#top" onClick={go('top')} aria-label="Committee Club Valencia">COMMITTEE</a>
       <nav className="nav__links" aria-label={tr('Secciones', 'Sections')}>
         <a href="#semana" onClick={go('semana')}>{tr('Semana', 'Week')}</a>
-        <a href="#entradas" onClick={go('entradas')}>{tr('Entradas', 'Tickets')}</a>
+        <TicketLink>{tr('Entradas', 'Tickets')}</TicketLink>
         <a href="#reservados" onClick={go('reservados')}>{tr('Mesas VIP', 'VIP tables')}</a>
         <a href="#lista" onClick={go('lista')}>{tr('Lista', 'List')}</a>
         <a href="#info" onClick={go('info')}>Info</a>
@@ -41,7 +44,7 @@ export function Header() {
           <button type="button" aria-pressed={lang === 'es'} onClick={() => setLang('es')}>ES</button>
           <button type="button" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>EN</button>
         </div>
-        <a className="nav__cta" href="#entradas" onClick={go('entradas')}>{tr('Entradas', 'Tickets')}</a>
+        <TicketLink className="nav__cta">{tr('Entradas', 'Tickets')}</TicketLink>
       </div>
     </header>
   );
@@ -130,7 +133,13 @@ export function Week() {
           <div className="week__days" role="group" aria-label={tr('Noche', 'Night')}>
             {NIGHTS.map((k) => (
               <button type="button" key={k} className="week__day" aria-pressed={night === k} onClick={() => nightStore.set(k)}>
-                <span>{DAY[k].short[lang]}</span>
+                <span className="week__word">{DAY[k].short[lang]}</span>
+                <span className="week__tap" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path className="week__tap-arrow" d="M9 5l7 7-7 7" />
+                    <path className="week__tap-check" d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                </span>
               </button>
             ))}
           </div>
@@ -148,7 +157,7 @@ export function Week() {
               <div><dt>{tr('Mesa VIP', 'VIP table')}</dt><dd>{tr('desde', 'from')} {eur(tableFrom(shown), lang)} <small>{tr('consumo mínimo', 'minimum spend')}</small></dd></div>
             </dl>
             <div className="week__cta">
-              <a className="btn btn--ink" href="#entradas" onClick={go('entradas')}><span>{tr(`Entradas para el ${DAY[shown].es.toLowerCase()}`, `Tickets for ${DAY[shown].en}`)}</span></a>
+              <TicketLink className="btn btn--ink"><span>{tr(`Entradas para el ${DAY[shown].es.toLowerCase()}`, `Tickets for ${DAY[shown].en}`)}</span></TicketLink>
               <a className="btn" href="#reservados" onClick={go('reservados')}><span>{tr('Reservar mesa', 'Book a table')}</span></a>
             </div>
           </div>
@@ -202,6 +211,12 @@ export function Zones({ onPick }) {
       {ZONES.map((z, i) => (
         <article className="zone" key={z.id} data-tone={ZONE_TONE[z.id]} ref={(el) => { refs.current[i] = el; }}>
           <div className="zone__in">
+            {PHOTOS.zones[z.id]?.src ? (
+              <figure className="zone__photo">
+                <img src={PHOTOS.zones[z.id].src} alt={PHOTOS.zones[z.id].alt} loading="lazy" decoding="async" />
+                {PHOTOS.zones[z.id].note ? <figcaption>{PHOTOS.zones[z.id].note}</figcaption> : null}
+              </figure>
+            ) : null}
             <div className="zone__top">
               <p className="zone__floor">{z.floor === 'first' ? 'First Floor' : tr('Planta superior', 'Upper floor')}</p>
               <p className="zone__price">{tr('desde', 'from')} <b>{eur(zoneFrom(z.id, night), lang)}</b></p>
@@ -239,6 +254,7 @@ export function Info() {
     <section className="info" id="info" data-tone="acc" aria-labelledby="info-title">
       <div className="wrap">
         <Reveal as="h2" id="info-title" className="display" text={tr('Antes de venir.', 'Before you come.')} />
+        <div className="info__grid">
         <dl className="info__rows">
           <div><dt>{tr('Dónde', 'Where')}</dt><dd><a href={maps} target="_blank" rel="noreferrer">Carrer de Sant Vicent Màrtir, 200<br />46007 València</a></dd></div>
           <div><dt>{tr('Cuándo', 'When')}</dt><dd>{tr('Jueves desde las 00:30. Viernes y sábado desde medianoche. Hasta las 07:30.', 'Thursday from 00:30. Friday and Saturday from midnight. Until 07:30.')}</dd></div>
@@ -248,6 +264,8 @@ export function Info() {
           <div><dt>{tr('Temporada', 'Season')}</dt><dd>{tr('De septiembre a mayo. Cerrado en verano.', 'September to May. Closed in summer.')}</dd></div>
           <div><dt>{tr('El grupo', 'The group')}</dt><dd>{CLUB.group}<br /><small>{CLUB.sisterVenues.join(' · ')}</small></dd></div>
         </dl>
+        <CommitteeMap />
+        </div>
       </div>
     </section>
   );
@@ -269,7 +287,7 @@ export function Footer() {
         <div className="foot__row">
           <p>Committee Club Valencia<br />Carrer de Sant Vicent Màrtir, 200 · 46007 València</p>
           <nav aria-label={tr('Pie', 'Footer')}>
-            <a href="#entradas" onClick={go('entradas')}>{tr('Entradas', 'Tickets')}</a>
+            <TicketLink>{tr('Entradas', 'Tickets')}</TicketLink>
             <a href="#reservados" onClick={go('reservados')}>{tr('Mesas VIP', 'VIP tables')}</a>
             <a href="#lista" onClick={go('lista')}>{tr('Lista', 'List')}</a>
             <a href="#top" onClick={go('top')}>{tr('Arriba', 'Top')}</a>
@@ -287,7 +305,7 @@ export function Footer() {
 /* ───────── Cursor de doble anillo (M14), solo con ratón ───────── */
 export function Cursor() {
   const dot = useRef(null); const ring = useRef(null);
-  const s = useRef({ x: -100, y: -100, rx: -100, ry: -100, k: createSpring(1, { tension: 260, friction: 24 }), on: false });
+  const s = useRef({ x: -100, y: -100, rx: -100, ry: -100, on: false });
   const [fine] = useState(() => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches && !reducedMotion);
   useEffect(() => {
     if (!fine) return undefined;
@@ -296,7 +314,6 @@ export function Cursor() {
       const st = s.current;
       st.x = e.clientX; st.y = e.clientY;
       if (!st.on) { st.on = true; st.rx = st.x; st.ry = st.y; }
-      st.k.set(e.target.closest?.('a,button,[role="button"],label,select,summary') ? 2.1 : 1);
     };
     window.addEventListener('pointermove', move, { passive: true });
     return () => { window.removeEventListener('pointermove', move); document.documentElement.classList.remove('has-cursor'); };
@@ -304,9 +321,10 @@ export function Cursor() {
   useTick((t) => {
     const st = s.current;
     if (!st.on) return;
-    st.rx += (st.x - st.rx) * 0.16; st.ry += (st.y - st.ry) * 0.16; st.k.step(t.dt);
+    // Tamaño siempre constante: el feedback de hover vive en cada elemento, no en el cursor.
+    st.rx += (st.x - st.rx) * 0.16; st.ry += (st.y - st.ry) * 0.16;
     dot.current.style.transform = `translate3d(${st.x}px,${st.y}px,0)`;
-    ring.current.style.transform = `translate3d(${st.rx.toFixed(1)}px,${st.ry.toFixed(1)}px,0) scale(${st.k.value.toFixed(3)})`;
+    ring.current.style.transform = `translate3d(${st.rx.toFixed(1)}px,${st.ry.toFixed(1)}px,0)`;
   }, 'write', fine);
   if (!fine) return null;
   return (<><div className="cur cur--dot" ref={dot} aria-hidden="true" /><div className="cur cur--ring" ref={ring} aria-hidden="true" /></>);

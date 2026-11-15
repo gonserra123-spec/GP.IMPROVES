@@ -1,8 +1,8 @@
 import { CLUB, RULES, TABLES, priceFor } from '../content/data.js';
 
 export const NIGHTS = ['thu', 'fri', 'sat'];
-// Rojo y negro: el mismo rojo todas las noches. El texto sobre el rojo siempre va en negro.
-export const ACCENTS = { thu: [255, 30, 39], fri: [255, 30, 39], sat: [255, 30, 39] };
+// Azul violáceo y negro (los colores originales de Committee): el mismo acento todas las noches. El texto sobre el acento siempre va en negro.
+export const ACCENTS = { thu: [112, 96, 255], fri: [112, 96, 255], sat: [112, 96, 255] };
 export const OPENS = { thu: '00:30', fri: '23:59', sat: '23:59' };
 export const CLOSES = '07:30';
 export const DAY = {
