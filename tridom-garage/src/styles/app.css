@@ -367,3 +367,40 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
   .tabs { top: 0; }
   .board-scene .scene { height: calc(100dvh - 57px); }
 }
+
+/* ---------- Mejoras del panel ---------- */
+.who-line { font-size: 0.9375rem; color: var(--mute); }
+.linklike { border: 0; background: none; padding: 0; min-height: 44px; font: inherit; font-weight: 600; color: var(--blue-500); text-decoration: underline; cursor: pointer; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { display: grid; gap: 2px; align-content: start; justify-items: start; min-height: 76px; padding: 10px 12px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-m); background: var(--white); color: var(--blue-900); text-align: left; }
+.stat b { font-family: var(--font-sign); font-size: 1.875rem; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; }
+.stat[aria-pressed='true'] { background: var(--blue-900); color: var(--white); }
+.stat[data-hot='true']:not([aria-pressed='true']) { border-color: var(--amber); background: #fef5e3; }
+.car-row .late { color: var(--ink); background: #fde4e1; padding: 0 6px; border-radius: 4px; font-size: 0.8125rem; font-weight: 600; }
+.car-row .row-tags { gap: 6px; }
+.mini-tag { padding: 0 8px; border-radius: 999px; background: var(--blue-100); color: var(--blue-900); font-size: 0.8125rem; font-weight: 600; }
+.car-row .when { color: var(--mute); font-size: 0.875rem; }
+.eta-ask { border-top-color: var(--amber); background: #fef5e3; padding: 12px; border-radius: var(--r-m); }
+.choices.quick { grid-template-columns: repeat(4, 1fr); }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-btn { min-height: 44px; padding: 0 14px; border: var(--stroke) solid var(--blue-900); border-radius: 999px; background: var(--white); color: var(--blue-900); font-weight: 600; font-size: 0.9375rem; cursor: pointer; }
+.tag-btn[aria-pressed='true'] { background: var(--blue-500); border-color: var(--blue-500); color: var(--white); }
+.tag-btn--rm { background: var(--blue-100); }
+.tag-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+
+/* Albarán: oculto en pantalla, es lo único que se imprime */
+.albaran { display: none; }
+@media print {
+  body * { visibility: hidden !important; }
+  .albaran, .albaran * { visibility: visible !important; }
+  .albaran { display: block; position: fixed; inset: 0; padding: 22mm 20mm; background: #fff; color: #000; font-family: var(--font-body, sans-serif); }
+  .albaran h2 { font-size: 22pt; margin: 4mm 0 8mm; }
+  .alb-shop { font-size: 14pt; font-weight: 700; }
+  .alb-car { display: grid; gap: 3mm; font-size: 13pt; margin-bottom: 10mm; }
+  .alb-qr { width: 70mm; height: 70mm; margin: 0 0 6mm; }
+  .alb-qr svg { width: 100%; height: 100%; }
+  .alb-scan { font-size: 13pt; margin-bottom: 3mm; }
+  .alb-code { font-size: 16pt; letter-spacing: 0.12em; margin-bottom: 3mm; }
+  .alb-url { font-size: 9pt; word-break: break-all; color: #333; }
+}

@@ -151,3 +151,17 @@ Codex no pudo leer el repositorio (su sandbox bloqueó el acceso a ficheros en l
 - drei solo aporta la cámara ortográfica; el resto de la escena es three directo dentro del lienzo de React Three Fiber.
 - Un mecánico, no dos.
 - Sin sección de precios (FALTA) y sin testimonios ni cifras.
+
+## Mejoras de limpieza y uso del panel (2026-11)
+Pedidas por Gonzalo/Pablo tras revisar la demo: nueve cambios. Decisiones:
+- **Demo por variable:** `DEMO_MODE=0` ya existía para ocultar el banner, pero el servidor seguía creando «Taller Demo» con el PIN conocido. Ahora no se crea nada y el taller sale de `WORKSHOP_*`. Test en `tests/api.test.mjs`.
+- **Entregados al historial:** sin pestañas; el historial vive en Ajustes y respeta la retención.
+- **Operador recordado:** solo el operador y el código del taller, en `localStorage` (`tg_login_v1`). El PIN sigue siendo del taller; si hace falta saber quién hizo cada cambio con garantías, haría falta un PIN por persona (no se ha hecho).
+- **Pista de una vez:** `tg_hint_select_v1` en `localStorage`; desaparece al tocar un coche o a los 9 s.
+- **Entrega estimada:** ya existía el campo (`etaAt`, solo fecha) pero estaba dentro de «Notas · Coste». Pasa a su propio bloque con atajos y aviso cuando falta. No se añade hora: exigiría cambiar el modelo y no aporta al taller.
+- **Etiquetas rápidas:** campo nuevo `tags` por coche (no entra en las notas, que siguen pidiendo 10 caracteres) y `noteTags` por taller.
+- **Resumen del día:** se calcula en el cliente con los datos que ya llegan; solo la ve la Oficina. «Entregados hoy» solo cuenta lo que no se haya borrado por retención.
+- **QR por coche:** código aleatorio de 6 caracteres, no la matrícula (la matrícula es fácil de adivinar). Entrada por `?c=`; el coste sigue exigiendo el teléfono. Con el QR no se aplica el límite por matrícula, solo el de IP.
+- **Landing:** cabecera con 3 enlaces; Panel, Cliente, Escena y Privacidad pasan al pie.
+- **Corregido de paso:** al salir del panel quedaba seleccionado el último coche en la escena.
+- **Supabase:** migración 0002 y cambios en las funciones `panel` y `consulta`, sin probar contra un proyecto real.

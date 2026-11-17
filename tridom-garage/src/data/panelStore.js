@@ -25,7 +25,7 @@ function applyLocal(vehicles, workshop, op, operator) {
     case 'create': {
       const place = pickSlot(taken(), tpl, preferredLocations('received', tpl, null));
       if (!place) return null;
-      return [...vehicles, { ...op.local, ...place, state: 'received', notes: '', costEstimate: null, costFinal: null, enteredAt: now, etaAt: null, deliveredAt: null, parts: [], history: [{ at: now, by: operator, type: 'created', to: 'received' }], rev: 0, updatedAt: now, pending: true }];
+      return [...vehicles, { ...op.local, ...place, state: 'received', notes: '', tags: [], publicCode: null, costEstimate: null, costFinal: null, enteredAt: now, etaAt: null, deliveredAt: null, parts: [], history: [{ at: now, by: operator, type: 'created', to: 'received' }], rev: 0, updatedAt: now, pending: true }];
     }
     case 'patch': return edit(op.id, (v) => {
       const p = op.patch;
@@ -45,6 +45,7 @@ function applyLocal(vehicles, workshop, op, operator) {
       }
       for (const k of ['notes', 'costEstimate', 'costFinal', 'etaAt']) if (p[k] !== undefined) v[k] = p[k] === '' ? null : p[k];
       if (p.notes !== undefined) v.notes = p.notes;
+      if (p.tags !== undefined) v.tags = p.tags;
       v.updatedAt = now; v.pending = true;
       return v;
     });

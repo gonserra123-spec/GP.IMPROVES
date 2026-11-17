@@ -118,3 +118,87 @@ test('retención: borra solo lo entregado hace más de los días configurados', 
   assert.ok(!afterList.vehicles.some((v) => v.plate === '8024CDF'));
   assert.ok(afterList.vehicles.some((v) => v.plate === '4680GHJ'));
 });
+
+test('QR del albarán: cada coche tiene un código corto único y la consulta entra con él', async () => {
+  await reset();
+  const cookie = await login();
+  const list = await (await fetch(`${base}/api/panel/vehicles`, { headers: { Cookie: cookie } })).json();
+  const codes = list.vehicles.map((v) => v.publicCode);
+  assert.ok(codes.every((c) => /^[A-HJ-NP-Z2-9]{6}$/.test(c)));
+  assert.equal(new Set(codes).size, codes.length);
+  const car = list.vehicles.find((v) => v.plate === '1234BCD');
+  const ok = await (await post('/public/lookup', { code: 'DEMO01', vehicleCode: car.publicCode.toLowerCase() })).json();
+  assert.equal(ok.ok, true);
+  assert.equal(ok.vehicle.plate, '1234BCD');
+  assert.ok(!JSON.stringify(ok).includes(car.publicCode)); // el código no viaja de vuelta en la respuesta pública
+  const bad = await post('/public/lookup', { code: 'DEMO01', vehicleCode: 'AAAAAA' });
+  const malformed = await post('/public/lookup', { code: 'DEMO01', vehicleCode: 'ab' });
+  assert.equal(await bad.text(), '{"ok":false}');
+  assert.equal(await malformed.text(), '{"ok":false}');
+  const otherShop = await post('/public/lookup', { code: 'NOEXISTE', vehicleCode: car.publicCode });
+  assert.equal(await otherShop.text(), '{"ok":false}');
+});
+
+test('QR del albarán: un coche nuevo recibe su propio código', async () => {
+  await reset();
+  const cookie = await login();
+  const res = await (await fetch(`${base}/api/panel/vehicles`, { method: 'POST', headers: { ...H(), Cookie: cookie }, body: JSON.stringify({ id: crypto.randomUUID(), plate: '5555DDD', modelId: 'seat-leon' }) })).json();
+  assert.equal(res.ok, true);
+  assert.match(res.vehicle.publicCode, /^[A-HJ-NP-Z2-9]{6}$/);
+  assert.deepEqual(res.vehicle.tags, []);
+});
+
+test('etiquetas rápidas del coche: se guardan limpias y se validan', async () => {
+  await reset();
+  const cookie = await login();
+  const list = await (await fetch(`${base}/api/panel/vehicles`, { headers: { Cookie: cookie } })).json();
+  const car = list.vehicles.find((v) => v.plate === '9012JKL');
+  const patch = (body) => fetch(`${base}/api/panel/vehicles/${car.id}`, { method: 'PATCH', headers: { ...H(), Cookie: cookie }, body: JSON.stringify(body) });
+  const ok = await (await patch({ tags: ['Pastillas delanteras', '  Pastillas   delanteras ', 'Neumáticos'] })).json();
+  assert.deepEqual(ok.vehicle.tags, ['Pastillas delanteras', 'Neumáticos']);
+  assert.equal((await patch({ tags: ['ab'] })).status, 422);
+  assert.equal((await patch({ tags: Array.from({ length: 9 }, (_, i) => `Etiqueta ${i}`) })).status, 422);
+  assert.equal((await patch({ tags: 'Frenos' })).status, 422);
+});
+
+test('ajustes del taller: aviso de coches parados y etiquetas propias, con valores límite', async () => {
+  await reset();
+  const cookie = await login();
+  const send = (body) => fetch(`${base}/api/panel/workshop`, { method: 'PATCH', headers: { ...H(), Cookie: cookie }, body: JSON.stringify(body) });
+  const a = await (await send({ staleDays: 7, noteTags: ['Frenos delanteros', 'Aceite'] })).json();
+  assert.equal(a.workshop.staleDays, 7);
+  assert.deepEqual(a.workshop.noteTags, ['Frenos delanteros', 'Aceite']);
+  assert.equal(a.workshop.retentionDays, 30); // lo que no se manda no cambia
+  const back = await (await send({ noteTags: null })).json();
+  assert.equal(back.workshop.noteTags, null);
+  assert.equal((await send({ staleDays: 0 })).status, 422);
+  assert.equal((await send({ staleDays: 61 })).status, 422);
+  assert.equal((await send({ noteTags: ['no'] })).status, 422);
+  assert.equal((await send({ noteTags: Array.from({ length: 13 }, (_, i) => `Etiqueta ${i}`) })).status, 422);
+  assert.equal((await send({})).status, 422);
+});
+
+test('hora estimada: se puede poner y quitar, y la consulta la muestra', async () => {
+  await reset();
+  const cookie = await login();
+  const list = await (await fetch(`${base}/api/panel/vehicles`, { headers: { Cookie: cookie } })).json();
+  const car = list.vehicles.find((v) => v.plate === '2468VWX');
+  assert.equal(car.etaAt, null);
+  const patch = (body) => fetch(`${base}/api/panel/vehicles/${car.id}`, { method: 'PATCH', headers: { ...H(), Cookie: cookie }, body: JSON.stringify(body) });
+  assert.equal((await (await patch({ etaAt: '2030-05-04' })).json()).vehicle.etaAt, '2030-05-04');
+  assert.equal((await patch({ etaAt: '04/05/2030' })).status, 422);
+  const seen = await (await post('/public/lookup', { code: 'DEMO01', vehicleCode: car.publicCode })).json();
+  assert.equal(seen.vehicle.etaAt, '2030-05-04');
+  assert.equal((await (await patch({ etaAt: '' })).json()).vehicle.etaAt, null);
+});
+
+test('modo sin demo: no hay Taller Demo ni PIN conocido; el taller sale del entorno', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const script = "import('./server/store.js').then((s) => console.log(JSON.stringify({ demo: s.DEMO, demoWorkshop: !!s.findWorkshopByCode('DEMO01'), main: s.findWorkshopByCode('TALLER1')?.name || null, vehicles: s.listVehicles('w-main').length })))";
+  const run = (env) => JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { env: { ...process.env, ...env }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+  const prod = run({ DEMO_MODE: '0', WORKSHOP_CODE: 'taller1', WORKSHOP_PIN: '4321', WORKSHOP_NAME: 'Taller Prueba' });
+  assert.deepEqual(prod, { demo: false, demoWorkshop: false, main: 'Taller Prueba', vehicles: 0 });
+  const nothing = run({ DEMO_MODE: '0', WORKSHOP_CODE: '', WORKSHOP_PIN: '' });
+  assert.deepEqual(nothing, { demo: false, demoWorkshop: false, main: null, vehicles: 0 });
+  assert.equal(run({ DEMO_MODE: '1' }).demoWorkshop, true);
+});

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import fullTemplate from '../../shared/template.json';
-import { plateError } from '../../shared/validate.js';
+import { isVehicleCode, plateError } from '../../shared/validate.js';
 import { normalizePlate } from '../../shared/plates.js';
 import { useT, LangSwitch } from '../i18n/index.jsx';
 import { Btn, Field, Link, Plate, SceneHost, StateChip, Wordmark } from '../components/ui.jsx';
@@ -37,6 +37,20 @@ export default function Consulta({ code }) {
     s.select(MINE);
   }, [result]);
   useEffect(() => { if (ready && result) useScene.getState().focusOn(MINE); }, [ready, result?.vehicle.location, result?.vehicle.slot, !!result]);
+
+  // Entrada por el QR del albarán: /consulta/CODIGO?c=ABC234 abre el coche directamente.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get('c');
+    if (!c || !isVehicleCode(c)) return undefined;
+    let alive = true;
+    setBusy(true);
+    getAdapter().then((api) => api.publicLookup({ code, vehicleCode: c.toUpperCase(), website: '' })).then((r) => {
+      if (!alive) return;
+      if (r.ok) { setResult({ token: r.token, vehicle: r.vehicle, others: r.others }); requestAnimationFrame(() => heading.current?.focus()); }
+      else setError(r.status === 429 ? 'rate_limited' : 'not_available');
+    }).catch((err) => { if (alive) setError(err instanceof NetworkError ? 'network' : 'not_available'); }).finally(() => { if (alive) setBusy(false); });
+    return () => { alive = false; };
+  }, [code]);
 
   // Se refresca solo con el token de vista (sin volver a escribir la matrícula).
   useEffect(() => {
@@ -115,6 +129,7 @@ export default function Consulta({ code }) {
                   <dt>{t('consulta.where')}</dt><dd>{t(`locations.${v.location || 'none'}`)}</dd>
                 </dl>
                 {v.etaAt && v.state !== 'delivered' && <p>{t('consulta.eta', { date: date(v.etaAt) })}</p>}
+                {!v.etaAt && ['diagnosis', 'awaiting_approval', 'awaiting_part', 'in_repair'].includes(v.state) && <p className="hint">{t('consulta.etaNone')}</p>}
                 {v.parts.length > 0 && (
                   <div className="block">
                     <h3>{t('consulta.parts')}</h3>

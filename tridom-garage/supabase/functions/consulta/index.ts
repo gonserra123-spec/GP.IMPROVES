@@ -3,6 +3,7 @@
 // suelo de tiempo, honeypot y límite de intentos por IP y por matrícula.
 import { allowed, clientIp, db, json, open, readView, signView, sleep } from '../_shared/http.ts';
 import { classifyPlate, normalizePlate } from '../_shared/plates.js';
+import { isVehicleCode } from '../_shared/validate.js';
 
 const FLOOR_MS = 420;
 const NOT_AVAILABLE = { ok: false };
@@ -44,6 +45,15 @@ Deno.serve(async (req) => {
   if (body.action === 'lookup') {
     if (!(await allowed(sb, 'lookup-ip', ip, 60, 10))) return limited();
     if (body.website) return reply(NOT_AVAILABLE);
+    // Entrada por el QR del albarán: código corto del coche (mismo límite por IP que la matrícula).
+    if (body.vehicleCode !== undefined) {
+      if (!isVehicleCode(body.vehicleCode)) return reply(NOT_AVAILABLE);
+      const wcode = typeof body.code === 'string' ? body.code.toUpperCase() : '';
+      const { data: ws } = await sb.from('workshops').select('id').eq('code', wcode).maybeSingle();
+      const { data: cv } = ws ? await sb.from('vehicles').select('*').eq('workshop_id', ws.id).eq('public_code', String(body.vehicleCode).toUpperCase()).maybeSingle() : { data: null };
+      if (!cv) return reply(NOT_AVAILABLE);
+      return reply({ ok: true, token: await signView({ v: cv.id, w: ws!.id }, VIEW_TTL), ...(await dto(sb, cv)) });
+    }
     const plate = normalizePlate(body.plate);
     if (!classifyPlate(plate)) return reply(NOT_AVAILABLE);
     const code = typeof body.code === 'string' ? body.code.toUpperCase() : '';

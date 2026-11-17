@@ -24,7 +24,7 @@ export default {
     invalid: 'El dato no es válido.', pin_format: 'El PIN tiene entre 4 y 8 cifras.', last4_format: 'Escribe las 4 últimas cifras del teléfono.',
     generic: 'No se ha podido completar. Inténtalo de nuevo.', network: 'Sin conexión. Inténtalo de nuevo en un momento.',
     rate_limited: 'Demasiados intentos. Espera un momento y vuelve a probar.', locked: 'Acceso bloqueado por intentos fallidos. Vuelve a intentarlo en {min} min.',
-    bad_credentials: 'El PIN no es correcto.', location_full: 'Esa ubicación está ocupada.', plate_exists: 'Ya hay un coche en el taller con esa matrícula.',
+    bad_credentials: 'El PIN no es correcto.', too_short_tag: 'Mínimo 3 letras.', location_full: 'Esa ubicación está ocupada.', plate_exists: 'Ya hay un coche en el taller con esa matrícula.',
     workshop_full: 'No queda ninguna plaza libre en el taller.', validation: 'Revisa los campos marcados.', not_configured: 'Este servicio todavía no está configurado.',
   },
   scene: {
@@ -34,7 +34,7 @@ export default {
     simulate: 'Simulación', simStop: 'Parar simulación', simNote: 'Reproduce una jornada con coches de demostración.', listTitle: 'Coches en el taller', empty: 'No hay coches en el taller.',
     show3d: 'Volver a la escena 3D', showList: 'Ver como lista',
   },
-  nav: { how: 'Cómo funciona', panel: 'Panel', customer: 'Cliente', scene: 'Escena', privacy: 'Privacidad', contact: 'Contacto', openPanel: 'Abrir el panel demo', menu: 'Menú' },
+  nav: { how: 'Cómo funciona', panel: 'Panel', customer: 'Cliente', scene: 'Escena', privacy: 'Privacidad', contact: 'Contacto', tryDemo: 'Probar demo', openPanel: 'Abrir el panel demo', menu: 'Menú' },
   landing: {
     hero: {
       title: ['Cada coche del taller,', 'a la vista.'],
@@ -106,11 +106,19 @@ export default {
     footer: { by: 'Un producto de Tridom · Valencia', legal: 'Privacidad', demo: 'Web de demostración. Nombre provisional.', rights: 'Los nombres de marcas y modelos se citan solo para identificar vehículos.' },
   },
   panel: {
-    title: 'Panel del taller', login: { title: 'Acceso al panel', code: 'Código del taller', pin: 'PIN del taller', operator: 'Quién eres', submit: 'Entrar', demo: 'PIN de la demo: {pin} · Código: {code}' },
+    title: 'Panel del taller', login: { title: 'Acceso al panel', code: 'Código del taller', pin: 'PIN del taller', operator: 'Quién eres', submit: 'Entrar', demo: 'PIN de la demo: {pin} · Código: {code}', asOperator: 'Entras como {who}.', change: 'Cambiar' },
     logout: 'Salir', tabs: { scene: 'Escena', list: 'Coches' }, newCar: 'Nuevo coche', search: 'Filtrar por estado', all: 'Todos', active: 'En el taller', deliveredTab: 'Entregados',
     offline: 'Sin conexión', offlineQueue: '{n} cambios pendientes de enviar', online: 'Conectado', live: 'Tiempo real', synced: 'Conexión recuperada: {n} cambios enviados.',
     syncFailed: 'Un cambio pendiente no se pudo aplicar.', conflictMine: 'Este coche lo acababa de cambiar {who}. Se ha aplicado tu cambio, que es el último.',
     conflictOther: 'Otro dispositivo ha cambiado el coche {plate}. Se muestra el último cambio.', pendingSync: 'Pendiente de enviar',
+    late: 'Retrasado', etaShort: 'Salida {date}',
+    stats: { title: 'Resumen del día', in: 'Entradas hoy', out: 'Entregados hoy', stale: 'Más de {n} días en el taller', none: 'Ningún coche en este resumen.' },
+    tags: { defaults: ['Pastillas delanteras', 'Discos de freno', 'Aceite y filtros', 'Neumáticos', 'Pendiente de pieza', 'Cliente avisado', 'Revisión pre-ITV', 'Batería'] },
+    albaran: {
+      title: 'Albarán de recepción', hint: 'Imprime una hoja con un QR para que el cliente consulte su coche sin escribir la matrícula.', print: 'Imprimir albarán',
+      pending: 'Disponible cuando el coche se haya sincronizado.', receipt: 'Albarán de recepción', entered: 'Entrada: {date}',
+      scan: 'Escanea este código para ver cómo va tu coche.', code: 'Código',
+    },
     empty: 'Todavía no hay coches. Pulsa «Nuevo coche» para dar de alta el primero.', selectHint: 'Toca un coche de la lista o de la escena para cambiar su estado.',
     form: {
       title: 'Nuevo coche', plate: 'Matrícula', plateHint: 'Ejemplo: 1234 BCD', foreign: 'Matrícula de otro país', model: 'Marca y modelo', modelHint: 'Escribe para buscar en el catálogo',
@@ -122,12 +130,18 @@ export default {
       partDesc: 'Descripción de la pieza', partEta: 'Fecha estimada', markOrdered: 'Marcar pedida', markArrived: 'Marcar llegada', removePart: 'Quitar pieza',
       notes: 'Notas internas', notesHint: 'Opcional. Si escribes, mínimo 10 caracteres. No las ve el cliente.', cost: 'Coste', costEstimate: 'Estimado (€)', costFinal: 'Final (€)',
       eta: 'Salida estimada', phone: 'Teléfono', phoneMasked: 'Termina en {last4}', noPhone: 'Sin teléfono: el cliente no verá el coste.', history: 'Historial',
-      entered: 'Entrada', saved: 'Guardado', saveNotes: 'Guardar notas y coste', data: 'Datos del cliente', export: 'Exportar datos', remove: 'Borrar coche y datos',
+      entered: 'Entrada',
+      etaTitle: 'Entrega estimada', etaAsk: '¿Para cuándo lo tienes previsto? El cliente lo verá en su consulta.', etaToday: 'Hoy', etaTomorrow: 'Mañana', etaPlus2: '+2 días', etaWeek: '+1 semana',
+      etaClear: 'Quitar fecha', etaNone: 'Sin fecha: el cliente verá que el taller aún no la ha indicado.',
+      tagsTitle: 'Etiquetas rápidas', tagsHint: 'Toca para añadir o quitar. No las ve el cliente.', saved: 'Guardado', saveNotes: 'Guardar notas y coste', data: 'Datos del cliente', export: 'Exportar datos', remove: 'Borrar coche y datos',
       removeConfirm: 'Pulsa otra vez para borrar definitivamente', hist: { created: 'Alta del coche', state: 'Estado: {from} → {to}', location: 'Ubicación: {from} → {to}', part: 'Pieza: {to}' },
     },
     settings: {
       title: 'Ajustes del taller', retention: 'Días de retención tras la entrega', retentionHint: 'Pasado ese plazo, el coche y sus datos se borran solos.', run: 'Aplicar retención ahora',
-      deleted: 'Retención aplicada: {n} coches borrados.', qr: 'QR para recepción', qrHint: 'El cliente lo escanea y escribe su matrícula.', open: 'Abrir la consulta',
+      deleted: 'Retención aplicada: {n} coches borrados.', qr: 'QR para recepción',
+      history: 'Historial de entregados', historyHint: 'Se conservan los coches entregados durante {n} días (la retención de abajo).', historySearch: 'Buscar matrícula', historyEmpty: 'No hay coches entregados.', deliveredOn: 'Entregado el {date}',
+      stale: 'Avisar de coches con más de (días)', staleHint: 'Se cuentan en el resumen del día de la oficina.',
+      tagsTitle: 'Etiquetas rápidas', tagsHint: 'Las que verá el taller en cada coche (hasta {n}).', tagNew: 'Nueva etiqueta', tagRemove: 'Quitar {tag}', tagsSave: 'Guardar etiquetas', tagsReset: 'Restaurar las de serie', qrHint: 'El cliente lo escanea y escribe su matrícula.', open: 'Abrir la consulta',
     },
   },
   consulta: {
@@ -138,7 +152,7 @@ export default {
       awaiting_approval: 'Tenemos el presupuesto y esperamos tu aprobación para empezar.', awaiting_part: 'Falta una pieza para seguir con la reparación.',
       in_repair: 'Tu coche está en reparación.', ready: 'Tu coche ya está listo, puedes pasar a recogerlo.', delivered: 'Tu coche ya fue entregado.',
     },
-    where: 'Dónde está', eta: 'Salida estimada: {date}', parts: 'Piezas pendientes', partEta: 'llegada estimada el {date}', partNoEta: 'sin fecha estimada todavía',
+    where: 'Dónde está', eta: 'Salida estimada: {date}', etaNone: 'El taller todavía no ha indicado una fecha de salida.', parts: 'Piezas pendientes', partEta: 'llegada estimada el {date}', partNoEta: 'sin fecha estimada todavía',
     verify: { title: 'Ver el coste', label: 'Últimas 4 cifras de tu teléfono', hint: 'El que diste en el taller.', submit: 'Ver coste', estimate: 'Presupuesto estimado', final: 'Importe final', none: 'El taller todavía no ha indicado ningún importe.' },
     again: 'Consultar otra matrícula', anon: 'Los demás coches se muestran como siluetas anónimas.', privacy: 'Privacidad', updated: 'Se actualiza solo.',
   },

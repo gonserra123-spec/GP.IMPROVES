@@ -43,6 +43,7 @@ export function createSupabaseAdapter() {
     exportVehicle: (id) => panel('export', { id }),
     runRetention: () => panel('retention_run'),
     setRetention: (retentionDays) => panel('retention_set', { retentionDays }),
+    setWorkshopSettings: (patch) => panel('workshop_set', { patch }),
     subscribe(onEvent) {
       let channel = null; let client = null; let closed = false;
       (async () => {

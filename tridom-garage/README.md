@@ -96,3 +96,31 @@ Pendiente de infraestructura (fuera del código, a cargo de Tridom): Cloudflare 
 ## Datos que faltan (FALTA)
 
 Dominio definitivo (canonical y `og:url`), precios, contacto y redes de Tridom, logo, destino del formulario de contacto, datos del responsable y del encargado en la política de privacidad, y proveedor de alojamiento.
+
+## Modo demo y entrega a un taller real
+
+- `DEMO_MODE=1` (por defecto): «Taller Demo» con datos ficticios, PIN visible en el acceso y etiqueta DEMO en el panel.
+- `DEMO_MODE=0`: sin demo. No existe «Taller Demo», no hay datos ficticios y no hay ningún PIN conocido. El servidor crea un único taller vacío con estas variables:
+
+| Variable | Qué es |
+|---|---|
+| `WORKSHOP_CODE` | Código del taller (4 a 12 letras o cifras) |
+| `WORKSHOP_PIN` | PIN del taller (4 a 8 cifras) |
+| `WORKSHOP_NAME` | Nombre que se pinta en la nave |
+| `WORKSHOP_LIFTS`, `WORKSHOP_PIT` | Elevadores (por defecto 2) y foso (`0` para quitarlo) |
+| `WORKSHOP_COLOR` | Color de marca, por ejemplo `#2F6FED` |
+
+Si falta el código o el PIN, el servidor avisa por consola y no crea ningún taller. Los datos del servidor de `server/` viven en memoria: para un taller real usa el adaptador de Supabase (`docs/deploy-supabase.md`).
+
+## Novedades del panel
+
+- **Recordar quién eres:** el dispositivo guarda el código del taller y el operador (Oficina, Mecánico 1 o 2). Solo se pregunta la primera vez; queda un enlace «Cambiar».
+- **Historial:** los coches entregados salen de la lista y se consultan en Ajustes, con buscador por matrícula, mientras dure la retención.
+- **Pista de una sola vez:** «Toca un coche…» se enseña una vez por dispositivo.
+- **Entrega estimada:** bloque propio en la ficha, con Hoy, Mañana, +2 días y +1 semana. Si el coche está en reparación o esperando y no tiene fecha, el panel la pide. En la lista, «Retrasado» marca las fechas pasadas. El cliente ve la fecha o «el taller aún no ha indicado una fecha».
+- **Etiquetas rápidas:** un toque en lugar de escribir (3 a 40 letras, hasta 8 por coche). Las del taller se editan en Ajustes (hasta 12) y se pueden restaurar.
+- **Resumen del día (Oficina):** entradas de hoy, entregados de hoy y coches con más de N días (5 por defecto, editable). Cada número filtra la lista.
+- **Albarán con QR:** en la ficha del coche, «Imprimir albarán». Cada coche tiene un código corto de 6 caracteres (sin I, O, 0 ni 1) y el QR abre `/consulta/<CÓDIGO_TALLER>?c=<CÓDIGO_COCHE>` directamente. El código no se puede adivinar (unos mil millones de combinaciones, con límite de intentos por IP), la respuesta es la misma si no existe y el coste sigue pidiendo las 4 últimas cifras del teléfono.
+- **Landing:** la cabecera tiene tres enlaces (Cómo funciona, Probar demo, Contacto); el resto está en el pie.
+
+Con Supabase: aplicar `supabase/migrations/0002_panel_mejoras.sql` y volver a desplegar las funciones `panel` y `consulta`. Está escrito pero no se ha probado contra un proyecto real.

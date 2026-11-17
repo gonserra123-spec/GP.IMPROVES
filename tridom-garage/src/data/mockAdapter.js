@@ -32,6 +32,7 @@ export function createMockAdapter() {
     exportVehicle: (id) => call('GET', `/panel/vehicles/${id}/export`),
     runRetention: () => call('POST', '/panel/retention/run', {}),
     setRetention: (retentionDays) => call('PATCH', '/panel/workshop', { retentionDays }),
+    setWorkshopSettings: (patch) => call('PATCH', '/panel/workshop', patch),
     subscribe(onEvent) {
       const es = new EventSource('/api/panel/events');
       es.addEventListener('hello', (e) => onEvent({ kind: 'hello', ...JSON.parse(e.data) }));

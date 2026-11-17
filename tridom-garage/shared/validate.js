@@ -75,7 +75,37 @@ export function validatePatch(input) {
   for (const k of ['costEstimate', 'costFinal']) if (input[k] !== undefined) { const e = costError(input[k]); if (e) errors[k] = e; }
   if (input.etaAt !== undefined) { const e = dateError(input.etaAt); if (e) errors.etaAt = e; }
   if (input.phone !== undefined) { const p = normalizePhone(input.phone); if (p && !isPhone(p)) errors.phone = 'phone_format'; }
+  if (input.tags !== undefined && (!Array.isArray(input.tags) || input.tags.length > TAGS_PER_VEHICLE || input.tags.some((x) => tagError(x)))) errors.tags = 'invalid';
   return { ok: Object.keys(errors).length === 0, errors };
+}
+
+// Etiquetas rápidas: texto corto que se toca en vez de escribirse (no aplica el mínimo de 10 de las notas).
+export const TAG_MIN = 3; export const TAG_MAX_LEN = 40; export const TAGS_PER_VEHICLE = 8; export const NOTE_TAGS_MAX = 12;
+export const tagError = (v) => {
+  if (typeof v !== 'string') return 'invalid';
+  const c = cleanText(v);
+  if (CONTROL.test(v)) return 'invalid';
+  if (c.length < TAG_MIN) return 'too_short_tag';
+  if (c.length > TAG_MAX_LEN) return 'too_long';
+  return null;
+};
+export const cleanTags = (list, max) => [...new Set((Array.isArray(list) ? list : []).map(cleanText).filter(Boolean))].slice(0, max);
+
+// Código corto por coche para el QR del albarán: sin I, O, 0 ni 1 para que no se confundan al leerlo.
+export const VEHICLE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const isVehicleCode = (v) => typeof v === 'string' && /^[A-HJ-NP-Z2-9]{6}$/.test(v.toUpperCase());
+
+// Ajustes del taller: cualquiera de ellos por separado. noteTags: null = volver a las etiquetas por defecto.
+export function validateWorkshopSettings(input) {
+  const errors = {};
+  if (input.retentionDays !== undefined && (!Number.isInteger(input.retentionDays) || input.retentionDays < 1 || input.retentionDays > 365)) errors.retentionDays = 'invalid';
+  if (input.staleDays !== undefined && (!Number.isInteger(input.staleDays) || input.staleDays < 1 || input.staleDays > 60)) errors.staleDays = 'invalid';
+  if (input.noteTags !== undefined && input.noteTags !== null) {
+    if (!Array.isArray(input.noteTags) || input.noteTags.length > NOTE_TAGS_MAX) errors.noteTags = 'invalid';
+    else if (input.noteTags.some((x) => tagError(x))) errors.noteTags = 'invalid';
+  }
+  const any = ['retentionDays', 'staleDays', 'noteTags'].some((k) => input[k] !== undefined);
+  return { ok: any && Object.keys(errors).length === 0, errors: any ? errors : { settings: 'invalid' } };
 }
 
 export function validatePart(input, { partial = false } = {}) {

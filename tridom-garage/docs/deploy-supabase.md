@@ -70,3 +70,4 @@
 2. Si es tráfico anómalo, activar «Under Attack» en Cloudflare.
 3. Revisar los registros de las funciones y de Cloudflare.
 4. Si hay datos afectados, avisar al taller (responsable del tratamiento) para que valore la notificación a la AEPD en 72 horas.
+- Mejoras del panel: aplicar también `supabase/migrations/0002_panel_mejoras.sql` y volver a desplegar `panel` y `consulta` (código corto por coche, etiquetas y aviso de coches parados).

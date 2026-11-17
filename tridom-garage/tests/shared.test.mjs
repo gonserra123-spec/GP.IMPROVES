@@ -67,3 +67,27 @@ test('validación: cambios, piezas y contacto', () => {
   assert.deepEqual(Object.keys(bad.errors).sort(), ['consent', 'email', 'message', 'name', 'workshop']);
   assert.equal(validateContact({ name: 'Ana', workshop: 'Taller', email: 'a@b.es', message: 'Mensaje de prueba largo', consent: true }).ok, true);
 });
+
+import { cleanTags, isVehicleCode, tagError, validateWorkshopSettings } from '../shared/validate.js';
+
+test('etiquetas: 3 a 40 caracteres, sin duplicados ni espacios de más', () => {
+  assert.equal(tagError('ab'), 'too_short_tag');
+  assert.equal(tagError('Aceite'), null);
+  assert.equal(tagError('x'.repeat(41)), 'too_long');
+  assert.equal(tagError(5), 'invalid');
+  assert.deepEqual(cleanTags([' Aceite  y filtros ', 'Aceite y filtros', ''], 8), ['Aceite y filtros']);
+});
+
+test('código de coche: 6 caracteres sin I, O, 0 ni 1', () => {
+  assert.ok(isVehicleCode('K7M2QX') && isVehicleCode('k7m2qx'));
+  for (const bad of ['K7M2Q', 'K7M2QXA', 'KIM2QX', 'KOM2QX', 'K0M2QX', 'K1M2QX', '', null]) assert.equal(isVehicleCode(bad), false, String(bad));
+});
+
+test('ajustes del taller: cada campo se valida por separado', () => {
+  assert.equal(validateWorkshopSettings({ staleDays: 5 }).ok, true);
+  assert.equal(validateWorkshopSettings({ noteTags: null }).ok, true);
+  assert.equal(validateWorkshopSettings({ noteTags: ['Aceite'] }).ok, true);
+  assert.equal(validateWorkshopSettings({}).ok, false);
+  assert.equal(validateWorkshopSettings({ retentionDays: 400 }).ok, false);
+  assert.equal(validateWorkshopSettings({ staleDays: 1.5 }).ok, false);
+});

@@ -48,7 +48,9 @@ function Header() {
     <header className="site-header" ref={ref} data-tone="light">
       <Wordmark />
       <nav className="site-nav" aria-label={t('nav.menu')}>
-        {['how', 'panel', 'customer', 'scene', 'privacy', 'contact'].map((id) => <a key={id} href={`#${id}`} onClick={go(id)}>{t(`nav.${id}`)}</a>)}
+        <a href="#how" onClick={go('how')}>{t('nav.how')}</a>
+        <Link to="/panel">{t('nav.tryDemo')}</Link>
+        <a href="#contact" onClick={go('contact')}>{t('nav.contact')}</a>
       </nav>
       <div className="header-right"><LangSwitch /></div>
     </header>
@@ -386,6 +388,7 @@ export default function Landing() {
           <p className="footer-word" aria-hidden="true">Tridom Garage</p>
           <div className="footer-meta">
             <span>{t('landing.footer.by')}</span>
+            {['panel', 'customer', 'scene', 'privacy'].map((id) => <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollToId(id); }}>{t(`nav.${id}`)}</a>)}
             <span>{t('landing.footer.demo')}</span>
             <Link to="/privacidad">{t('landing.footer.legal')}</Link>
           </div>

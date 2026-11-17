@@ -24,7 +24,7 @@ export default {
     invalid: 'That value is not valid.', pin_format: 'The PIN has 4 to 8 digits.', last4_format: 'Enter the last 4 digits of the phone number.',
     generic: 'That could not be completed. Please try again.', network: 'No connection. Try again in a moment.',
     rate_limited: 'Too many attempts. Wait a moment and try again.', locked: 'Access locked after failed attempts. Try again in {min} min.',
-    bad_credentials: 'The PIN is not correct.', location_full: 'That location is taken.', plate_exists: 'A car with that plate is already in the workshop.',
+    bad_credentials: 'The PIN is not correct.', too_short_tag: 'At least 3 letters.', location_full: 'That location is taken.', plate_exists: 'A car with that plate is already in the workshop.',
     workshop_full: 'There is no free space left in the workshop.', validation: 'Check the highlighted fields.', not_configured: 'This service is not set up yet.',
   },
   scene: {
@@ -34,7 +34,7 @@ export default {
     simulate: 'Simulation', simStop: 'Stop simulation', simNote: 'Plays a working day with demo cars.', listTitle: 'Cars in the workshop', empty: 'There are no cars in the workshop.',
     show3d: 'Back to the 3D scene', showList: 'View as a list',
   },
-  nav: { how: 'How it works', panel: 'Panel', customer: 'Customer', scene: 'Scene', privacy: 'Privacy', contact: 'Contact', openPanel: 'Open the demo panel', menu: 'Menu' },
+  nav: { how: 'How it works', panel: 'Panel', customer: 'Customer', scene: 'Scene', privacy: 'Privacy', contact: 'Contact', tryDemo: 'Try the demo', openPanel: 'Open the demo panel', menu: 'Menu' },
   landing: {
     hero: {
       title: ['Every car in the workshop,', 'in plain sight.'],
@@ -106,11 +106,19 @@ export default {
     footer: { by: 'A product by Tridom · Valencia', legal: 'Privacy', demo: 'Demo website. Working name.', rights: 'Make and model names are quoted only to identify vehicles.' },
   },
   panel: {
-    title: 'Workshop panel', login: { title: 'Panel access', code: 'Workshop code', pin: 'Workshop PIN', operator: 'Who are you', submit: 'Sign in', demo: 'Demo PIN: {pin} · Code: {code}' },
+    title: 'Workshop panel', login: { title: 'Panel access', code: 'Workshop code', pin: 'Workshop PIN', operator: 'Who are you', submit: 'Sign in', demo: 'Demo PIN: {pin} · Code: {code}', asOperator: 'Signing in as {who}.', change: 'Change' },
     logout: 'Sign out', tabs: { scene: 'Scene', list: 'Cars' }, newCar: 'New car', search: 'Filter by status', all: 'All', active: 'In the workshop', deliveredTab: 'Delivered',
     offline: 'Offline', offlineQueue: '{n} changes waiting to be sent', online: 'Connected', live: 'Real time', synced: 'Back online: {n} changes sent.',
     syncFailed: 'A pending change could not be applied.', conflictMine: '{who} had just changed this car. Your change was applied, as it is the latest.',
     conflictOther: 'Another device changed car {plate}. The latest change is shown.', pendingSync: 'Waiting to be sent',
+    late: 'Late', etaShort: 'Ready {date}',
+    stats: { title: 'Daily summary', in: 'Arrived today', out: 'Delivered today', stale: 'Over {n} days in the workshop', none: 'No cars in this summary.' },
+    tags: { defaults: ['Front brake pads', 'Brake discs', 'Oil and filters', 'Tyres', 'Waiting for a part', 'Customer informed', 'Pre-inspection check', 'Battery'] },
+    albaran: {
+      title: 'Reception slip', hint: 'Print a sheet with a QR so the customer can check their car without typing the plate.', print: 'Print slip',
+      pending: 'Available once the car has synced.', receipt: 'Reception slip', entered: 'Arrived: {date}',
+      scan: 'Scan this code to see how your car is doing.', code: 'Code',
+    },
     empty: 'No cars yet. Tap “New car” to log the first one.', selectHint: 'Tap a car in the list or in the scene to change its status.',
     form: {
       title: 'New car', plate: 'Number plate', plateHint: 'Example: 1234 BCD', foreign: 'Plate from another country', model: 'Make and model', modelHint: 'Type to search the catalogue',
@@ -122,12 +130,18 @@ export default {
       partDesc: 'Part description', partEta: 'Expected date', markOrdered: 'Mark ordered', markArrived: 'Mark arrived', removePart: 'Remove part',
       notes: 'Internal notes', notesHint: 'Optional. If you write, at least 10 characters. The customer never sees them.', cost: 'Cost', costEstimate: 'Estimate (€)', costFinal: 'Final (€)',
       eta: 'Expected ready date', phone: 'Phone', phoneMasked: 'Ends in {last4}', noPhone: 'No phone: the customer will not see the cost.', history: 'History',
-      entered: 'Arrived', saved: 'Saved', saveNotes: 'Save notes and cost', data: 'Customer data', export: 'Export data', remove: 'Delete car and data',
+      entered: 'Arrived',
+      etaTitle: 'Estimated ready date', etaAsk: 'When do you expect it to be ready? The customer will see it.', etaToday: 'Today', etaTomorrow: 'Tomorrow', etaPlus2: '+2 days', etaWeek: '+1 week',
+      etaClear: 'Remove date', etaNone: 'No date: the customer will see that the workshop has not given one yet.',
+      tagsTitle: 'Quick tags', tagsHint: 'Tap to add or remove. The customer does not see them.', saved: 'Saved', saveNotes: 'Save notes and cost', data: 'Customer data', export: 'Export data', remove: 'Delete car and data',
       removeConfirm: 'Tap again to delete for good', hist: { created: 'Car logged', state: 'Status: {from} → {to}', location: 'Location: {from} → {to}', part: 'Part: {to}' },
     },
     settings: {
       title: 'Workshop settings', retention: 'Retention days after delivery', retentionHint: 'After that, the car and its data are deleted automatically.', run: 'Apply retention now',
-      deleted: 'Retention applied: {n} cars deleted.', qr: 'QR for reception', qrHint: 'The customer scans it and types their plate.', open: 'Open the customer view',
+      deleted: 'Retention applied: {n} cars deleted.', qr: 'QR for reception',
+      history: 'Delivered cars history', historyHint: 'Delivered cars are kept for {n} days (the retention below).', historySearch: 'Search plate', historyEmpty: 'No delivered cars.', deliveredOn: 'Delivered on {date}',
+      stale: 'Flag cars older than (days)', staleHint: 'Counted in the office daily summary.',
+      tagsTitle: 'Quick tags', tagsHint: 'The ones the workshop sees on each car (up to {n}).', tagNew: 'New tag', tagRemove: 'Remove {tag}', tagsSave: 'Save tags', tagsReset: 'Restore defaults', qrHint: 'The customer scans it and types their plate.', open: 'Open the customer view',
     },
   },
   consulta: {
@@ -138,7 +152,7 @@ export default {
       awaiting_approval: 'The quote is ready and we are waiting for your approval to start.', awaiting_part: 'A part is missing before the repair can continue.',
       in_repair: 'Your car is being repaired.', ready: 'Your car is ready, you can come and collect it.', delivered: 'Your car has already been handed over.',
     },
-    where: 'Where it is', eta: 'Expected ready date: {date}', parts: 'Pending parts', partEta: 'expected on {date}', partNoEta: 'no expected date yet',
+    where: 'Where it is', eta: 'Expected ready date: {date}', etaNone: 'The workshop has not given a ready date yet.', parts: 'Pending parts', partEta: 'expected on {date}', partNoEta: 'no expected date yet',
     verify: { title: 'See the cost', label: 'Last 4 digits of your phone', hint: 'The one you gave the workshop.', submit: 'See cost', estimate: 'Estimated quote', final: 'Final amount', none: 'The workshop has not entered an amount yet.' },
     again: 'Check another plate', anon: 'The other cars are shown as anonymous silhouettes.', privacy: 'Privacy', updated: 'Updates on its own.',
   },

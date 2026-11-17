@@ -2,14 +2,14 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { classifyPlate, normalizePlate } from '../shared/plates.js';
 import { OPERATORS } from '../shared/domain.js';
-import { isPin, isUuid, validateContact, validateNewVehicle, validatePart, validatePatch } from '../shared/validate.js';
+import { isPin, isUuid, isVehicleCode, validateContact, validateNewVehicle, validatePart, validatePatch, validateWorkshopSettings } from '../shared/validate.js';
 import * as store from './store.js';
 import {
   clientIp, createLimiter, createSession, destroySession, getSession, isLoopback, readToken, resetSessions,
   sessionCookie, signToken, verifyPin,
 } from './security.js';
 
-const DEMO = process.env.DEMO_MODE !== '0';
+const DEMO = store.DEMO;
 const MIN = 60_000;
 const limits = {
   lookupIp: createLimiter({ windowMs: MIN, max: 10 }),
@@ -71,12 +71,19 @@ async function publicLookup(req, res, body) {
   const ip = clientIp(req);
   if (!limits.lookupIp.hit(ip).ok) return send(res, 429, { ok: false, error: 'rate_limited' }, { 'Retry-After': String(limits.lookupIp.retryAfter(ip)) });
   if (body.website) return publicReply(res, started, NOT_AVAILABLE);
-  const plate = normalizePlate(body.plate);
   const workshop = typeof body.code === 'string' ? store.findWorkshopByCode(body.code) : null;
-  if (!classifyPlate(plate)) return publicReply(res, started, NOT_AVAILABLE);
-  const key = `${workshop?.id || 'none'}:${plate}`;
-  if (!limits.lookupPlate.hit(key).ok) return send(res, 429, { ok: false, error: 'rate_limited' }, { 'Retry-After': String(limits.lookupPlate.retryAfter(key)) });
-  const v = workshop ? store.findByPlate(workshop.id, plate) : null;
+  let v = null;
+  if (body.vehicleCode !== undefined) {
+    // Entrada por el QR del albarán: código corto del coche, con el mismo límite de intentos por IP.
+    if (!isVehicleCode(body.vehicleCode)) return publicReply(res, started, NOT_AVAILABLE);
+    v = workshop ? store.findByCode(workshop.id, body.vehicleCode) : null;
+  } else {
+    const plate = normalizePlate(body.plate);
+    if (!classifyPlate(plate)) return publicReply(res, started, NOT_AVAILABLE);
+    const key = `${workshop?.id || 'none'}:${plate}`;
+    if (!limits.lookupPlate.hit(key).ok) return send(res, 429, { ok: false, error: 'rate_limited' }, { 'Retry-After': String(limits.lookupPlate.retryAfter(key)) });
+    v = workshop ? store.findByPlate(workshop.id, plate) : null;
+  }
   if (!v) return publicReply(res, started, NOT_AVAILABLE);
   return publicReply(res, started, { ok: true, token: signToken({ v: v.id, w: workshop.id }, VIEW_TTL), ...store.publicDto(v) });
 }
@@ -188,9 +195,9 @@ async function panel(req, res, path, method) {
   }
   if (path === '/retention/run' && method === 'POST') return send(res, 200, { ok: true, deleted: store.runRetention() });
   if (path === '/workshop' && method === 'PATCH') {
-    const d = body.retentionDays;
-    if (!Number.isInteger(d) || d < 1 || d > 365) return send(res, 422, { ok: false, error: 'validation', errors: { retentionDays: 'invalid' } });
-    return send(res, 200, { ok: true, workshop: store.setRetention(wid, d) });
+    const v = validateWorkshopSettings(body);
+    if (!v.ok) return send(res, 422, { ok: false, error: 'validation', errors: v.errors });
+    return send(res, 200, { ok: true, workshop: store.setWorkshopSettings(wid, body) });
   }
 
   const m = /^\/vehicles\/([^/]+)(?:\/parts(?:\/([^/]+))?)?$/.exec(path);

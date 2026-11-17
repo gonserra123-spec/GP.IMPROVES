@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import qrcode from 'qrcode-generator';
 import catalog from '../../shared/models.json';
 import fullTemplate from '../../shared/template.json';
 import { BODY_TYPES, OPERATORS, STATES, capacities, locationsFor } from '../../shared/domain.js';
@@ -9,13 +8,18 @@ import { Btn, Field, Plate, SceneHost, StateChip, Wordmark } from '../components
 import { usePanel } from '../data/panelStore.js';
 import { getAdapter, NetworkError } from '../data/adapter.js';
 import { useScene } from '../scene/store.js';
+import { isOverdue } from '../lib/days.js';
+import { AlbaranBlock, DaySummary, EtaBlock, Settings, TagsBlock, recalledLogin, rememberLogin, summaryOf, useOnceFlag } from './panelParts.jsx';
 
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 function Login() {
   const { t } = useT();
   const { config, login, online } = usePanel();
-  const [v, setV] = useState({ code: '', pin: '', operator: 'office', website: '' });
+  const rem = useMemo(() => recalledLogin(), []);
+  const known = OPERATORS.includes(rem.operator);
+  const [v, setV] = useState({ code: rem.code || '', pin: '', operator: known ? rem.operator : 'office', website: '' });
+  const [pickOp, setPickOp] = useState(!known); // solo se pregunta quién eres la primera vez
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (config?.workshopCode) setV((s) => (s.code ? s : { ...s, code: config.workshopCode })); }, [config]);
@@ -25,6 +29,7 @@ function Login() {
     setBusy(true); setError(null);
     try {
       const r = await login(v);
+      if (r.ok) rememberLogin(v);
       if (!r.ok) setError(r.error === 'locked' ? { key: 'locked', vars: { min: String(Math.max(1, Math.ceil((r.retryAfter || 60) / 60))) } } : { key: r.error === 'bad_credentials' ? 'bad_credentials' : (r.error === 'rate_limited' ? 'rate_limited' : 'generic') });
     } catch (err) { setError({ key: err instanceof NetworkError ? 'network' : 'generic' }); }
     setBusy(false); setV((s) => ({ ...s, pin: '' }));
@@ -37,12 +42,16 @@ function Login() {
         {config?.demo && <p className="notice notice--warn"><span className="demo-tag">{t('common.demo')}</span> {t('panel.login.demo', { pin: config.demoPin, code: config.workshopCode })}</p>}
         <Field label={t('panel.login.code')}>{(a) => <input className="input" autoCapitalize="characters" autoComplete="off" spellCheck="false" maxLength={12} value={v.code} onChange={(e) => setV({ ...v, code: e.target.value.toUpperCase() })} {...a} />}</Field>
         <Field label={t('panel.login.pin')}>{(a) => <input className="input input--plate" type="password" inputMode="numeric" pattern="[0-9]*" autoComplete="off" maxLength={8} value={v.pin} onChange={(e) => setV({ ...v, pin: e.target.value.replace(/\D/g, '') })} {...a} />}</Field>
-        <div className="field">
-          <span className="label" id="op-label">{t('panel.login.operator')}</span>
-          <div className="seg" role="group" aria-labelledby="op-label">
-            {OPERATORS.map((o) => <button key={o} type="button" className="choice" aria-pressed={v.operator === o} onClick={() => setV({ ...v, operator: o })}>{t(`operators.${o}`)}</button>)}
+        {pickOp ? (
+          <div className="field">
+            <span className="label" id="op-label">{t('panel.login.operator')}</span>
+            <div className="seg" role="group" aria-labelledby="op-label">
+              {OPERATORS.map((o) => <button key={o} type="button" className="choice" aria-pressed={v.operator === o} onClick={() => setV({ ...v, operator: o })}>{t(`operators.${o}`)}</button>)}
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="who-line">{t('panel.login.asOperator', { who: t(`operators.${v.operator}`) })} <button type="button" className="linklike" onClick={() => setPickOp(true)}>{t('panel.login.change')}</button></p>
+        )}
         <div className="hp" aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" value={v.website} onChange={(e) => setV({ ...v, website: e.target.value })} /></label></div>
         <div aria-live="assertive">{error && <p className="notice notice--error">{t(`errors.${error.key}`, error.vars)}</p>}{!online && !error && <p className="notice notice--warn">{t('errors.network')}</p>}</div>
         <Btn type="submit" disabled={busy}>{t('panel.login.submit')}</Btn>
@@ -130,12 +139,12 @@ function Detail({ v, onBack }) {
   const { mutate, vehicles, workshop } = usePanel();
   const [part, setPart] = useState({ description: '', etaAt: '' });
   const [partErr, setPartErr] = useState({});
-  const [extra, setExtra] = useState({ notes: v.notes || '', costEstimate: v.costEstimate ?? '', costFinal: v.costFinal ?? '', etaAt: v.etaAt || '' });
+  const [extra, setExtra] = useState({ notes: v.notes || '', costEstimate: v.costEstimate ?? '', costFinal: v.costFinal ?? '' });
   const [extraErr, setExtraErr] = useState({});
   const [saved, setSaved] = useState(false);
   const [fail, setFail] = useState(null);
   const [confirm, setConfirm] = useState(false);
-  useEffect(() => { setExtra({ notes: v.notes || '', costEstimate: v.costEstimate ?? '', costFinal: v.costFinal ?? '', etaAt: v.etaAt || '' }); setConfirm(false); setFail(null); }, [v.id]);
+  useEffect(() => { setExtra({ notes: v.notes || '', costEstimate: v.costEstimate ?? '', costFinal: v.costFinal ?? '' }); setConfirm(false); setFail(null); }, [v.id]);
 
   const cap = capacities(workshop.template);
   const used = {};
@@ -159,10 +168,9 @@ function Detail({ v, onBack }) {
     const errs = {};
     const ne = freeTextError(extra.notes, { max: 500 }); if (ne) errs.notes = ne;
     for (const k of ['costEstimate', 'costFinal']) { const ce = costError(extra[k]); if (ce) errs[k] = ce; }
-    const de = dateError(extra.etaAt); if (de) errs.etaAt = de;
     setExtraErr(errs);
     if (Object.keys(errs).length) return;
-    const r = await run({ type: 'patch', id: v.id, patch: { notes: extra.notes.trim(), costEstimate: parseCost(extra.costEstimate), costFinal: parseCost(extra.costFinal), etaAt: extra.etaAt || '' } });
+    const r = await run({ type: 'patch', id: v.id, patch: { notes: extra.notes.trim(), costEstimate: parseCost(extra.costEstimate), costFinal: parseCost(extra.costFinal) } });
     if (r.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
   };
   const exportData = async () => {
@@ -215,6 +223,8 @@ function Detail({ v, onBack }) {
         </section>
       )}
 
+      <EtaBlock v={v} run={run} />
+
       <section className="block" aria-labelledby="h-parts">
         <h3 id="h-parts">{t('panel.detail.parts')}</h3>
         {!v.parts.length && <p className="hint">{t('panel.detail.noParts')}</p>}
@@ -236,6 +246,8 @@ function Detail({ v, onBack }) {
         </form>
       </section>
 
+      <TagsBlock v={v} run={run} />
+
       <form className="block" onSubmit={saveExtra} noValidate aria-labelledby="h-notes">
         <h3 id="h-notes">{t('panel.detail.notes')} · {t('panel.detail.cost')}</h3>
         <Field label={t('panel.detail.notes')} optional hint={t('panel.detail.notesHint')} error={extraErr.notes}>{(a) => <textarea className="input" maxLength={500} value={extra.notes} onChange={(e) => setExtra({ ...extra, notes: e.target.value })} {...a} />}</Field>
@@ -243,7 +255,6 @@ function Detail({ v, onBack }) {
           <Field label={t('panel.detail.costEstimate')} optional error={extraErr.costEstimate}>{(a) => <input className="input" inputMode="decimal" maxLength={10} value={extra.costEstimate} onChange={(e) => setExtra({ ...extra, costEstimate: e.target.value })} {...a} />}</Field>
           <Field label={t('panel.detail.costFinal')} optional error={extraErr.costFinal}>{(a) => <input className="input" inputMode="decimal" maxLength={10} value={extra.costFinal} onChange={(e) => setExtra({ ...extra, costFinal: e.target.value })} {...a} />}</Field>
         </div>
-        <Field label={t('panel.detail.eta')} optional error={extraErr.etaAt}>{(a) => <input className="input" type="date" value={extra.etaAt} onChange={(e) => setExtra({ ...extra, etaAt: e.target.value })} {...a} />}</Field>
         <Btn type="submit" variant="ghost">{t('panel.detail.saveNotes')}</Btn>
         <div aria-live="polite">{saved && <p className="notice notice--ok">{t('panel.detail.saved')}</p>}</div>
       </form>
@@ -255,6 +266,8 @@ function Detail({ v, onBack }) {
         </ol>
       </section>
 
+      <AlbaranBlock v={v} workshop={workshop} />
+
       <section className="block" aria-labelledby="h-data">
         <h3 id="h-data">{t('panel.detail.data')}</h3>
         <p className="hint">{v.hasPhone ? `${t('panel.detail.phone')}: ${t('panel.detail.phoneMasked', { last4: v.phoneLast4 })}` : t('panel.detail.noPhone')}</p>
@@ -264,47 +277,6 @@ function Detail({ v, onBack }) {
         </div>
       </section>
     </article>
-  );
-}
-
-function QR({ text }) {
-  const d = useMemo(() => {
-    const q = qrcode(0, 'M'); q.addData(text); q.make();
-    const n = q.getModuleCount(); let path = '';
-    for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) if (q.isDark(r, c)) path += `M${c} ${r}h1v1h-1z`;
-    return { n, path };
-  }, [text]);
-  return <svg viewBox={`0 0 ${d.n} ${d.n}`} role="img" aria-label="QR" shapeRendering="crispEdges"><path d={d.path} fill="#0B2A5B" /></svg>;
-}
-
-function Settings({ onBack }) {
-  const { t } = useT();
-  const { workshop, toast, reload } = usePanel();
-  const [days, setDays] = useState(String(workshop.retentionDays));
-  const [err, setErr] = useState(null);
-  const url = `${window.location.origin}/consulta/${workshop.code}`;
-  const save = async (e) => {
-    e.preventDefault();
-    const n = Number(days);
-    if (!Number.isInteger(n) || n < 1 || n > 365) { setErr('invalid'); return; }
-    setErr(null);
-    try { const api = await getAdapter(); const r = await api.setRetention(n); if (r.ok) { usePanel.setState({ workshop: r.workshop }); toast('ok', 'panel.detail.saved'); } else setErr('generic'); } catch { setErr('network'); }
-  };
-  const run = async () => {
-    try { const api = await getAdapter(); const r = await api.runRetention(); if (r.ok) { toast('ok', 'panel.settings.deleted', { n: String(r.deleted) }); reload(); } } catch { setErr('network'); }
-  };
-  return (
-    <section className="panel-card" aria-labelledby="h-set">
-      <div className="detail-head"><Btn variant="ghost sm" onClick={onBack} aria-label={t('common.back')}>←</Btn><h2 className="grow" id="h-set">{t('panel.settings.title')}</h2></div>
-      <form className="block" onSubmit={save} noValidate>
-        <Field label={t('panel.settings.retention')} hint={t('panel.settings.retentionHint')} error={err}>{(a) => <input className="input" inputMode="numeric" maxLength={3} value={days} onChange={(e) => setDays(e.target.value.replace(/\D/g, ''))} {...a} />}</Field>
-        <div className="part-actions"><Btn type="submit" variant="ghost sm">{t('common.save')}</Btn><Btn variant="ghost sm" onClick={run}>{t('panel.settings.run')}</Btn></div>
-      </form>
-      <div className="block">
-        <h3>{t('panel.settings.qr')}</h3>
-        <div className="qr"><QR text={url} /><div><p className="hint">{t('panel.settings.qrHint')}</p><p><a href={`/consulta/${workshop.code}`} target="_blank" rel="noopener">{t('panel.settings.open')}</a></p></div></div>
-      </div>
-    </section>
   );
 }
 
@@ -319,19 +291,25 @@ function Toasts() {
 }
 
 export default function Panel() {
-  const { t } = useT();
+  const { t, date } = useT();
   const { status, boot, vehicles, workshop, operator, online, queue, logout, config } = usePanel();
   const selectedId = useScene((s) => s.selectedId);
   const [view, setView] = useState('list'); // list | new | settings
-  const [filter, setFilter] = useState('active');
+  const [from, setFrom] = useState(null); // 'settings' si el coche se abrió desde el historial
+  const [stat, setStat] = useState(null); // filtro del resumen del día: in | out | stale
   const [tab, setTab] = useState('list');
+  const [hint, hideHint] = useOnceFlag('tg_hint_select_v1');
 
   useEffect(() => { boot(); return () => useScene.getState().reset(); }, []);
   useEffect(() => { if (status === 'ready') useScene.getState().setData(vehicles); }, [vehicles, status]);
 
-  const select = (id) => {
+  const select = (id, origin = null) => {
     useScene.getState().select(id);
-    if (id) { setView('list'); useScene.getState().focusOn(id); setTab('list'); }
+    if (id) {
+      hideHint(); setView('list'); setTab('list'); setFrom(origin);
+      // Los coches entregados ya no están en la escena: solo se abre su ficha.
+      if (usePanel.getState().vehicles.find((x) => x.id === id)?.state !== 'delivered') useScene.getState().focusOn(id);
+    } else if (from === 'settings') { setFrom(null); setView('settings'); }
   };
   const template = useMemo(() => (workshop ? { ...fullTemplate, lifts: workshop.template.lifts, pit: workshop.template.pit } : null), [workshop]);
   if (status === 'boot') return <p className="scene-loading" role="status">{t('common.loading')}</p>;
@@ -339,7 +317,9 @@ export default function Panel() {
 
   const selected = vehicles.find((v) => v.id === selectedId) || null;
   const active = vehicles.filter((v) => v.state !== 'delivered');
-  const shown = filter === 'active' ? active : vehicles.filter((v) => v.state === 'delivered');
+  const staleDays = workshop.staleDays ?? 5;
+  const sum = summaryOf(vehicles, staleDays);
+  const shown = stat ? sum[stat] : active;
   return (
     <div className="app">
       <header className="app-bar">
@@ -349,8 +329,8 @@ export default function Panel() {
         <span className="grow" />
         <span className="net" data-off={!online || queue.length > 0} role="status">{online && !queue.length ? t('panel.online') : `${t('panel.offline')}${queue.length ? ` · ${t('panel.offlineQueue', { n: String(queue.length) })}` : ''}`}</span>
         <LangSwitch />
-        <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setView('settings'); setTab('list'); }}>{t('panel.settings.title')}</Btn>
-        <Btn variant="ghost sm" onClick={logout}>{t('panel.logout')}</Btn>
+        <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setFrom(null); setView('settings'); setTab('list'); }}>{t('panel.settings.title')}</Btn>
+        <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setStat(null); setFrom(null); setView('list'); logout(); }}>{t('panel.logout')}</Btn>
       </header>
       <div>
         <div className="tabs" role="tablist">
@@ -364,27 +344,30 @@ export default function Panel() {
           <div className="board-side">
             {selected ? <Detail v={selected} onBack={() => select(null)} />
               : view === 'new' ? <NewCar onDone={(id) => { setView('list'); if (id) select(id); }} />
-                : view === 'settings' ? <Settings onBack={() => setView('list')} />
+                : view === 'settings' ? <Settings onBack={() => setView('list')} onOpen={(id) => select(id, 'settings')} />
                   : (
                     <>
                       <div className="side-head"><Btn onClick={() => setView('new')}>+ {t('panel.newCar')}</Btn></div>
-                      <div className="filters" role="group" aria-label={t('panel.search')}>
-                        <button type="button" className="filter" aria-pressed={filter === 'active'} onClick={() => setFilter('active')}>{t('panel.active')} ({active.length})</button>
-                        <button type="button" className="filter" aria-pressed={filter === 'delivered'} onClick={() => setFilter('delivered')}>{t('panel.deliveredTab')} ({vehicles.length - active.length})</button>
-                      </div>
-                      {!shown.length ? <p className="empty">{filter === 'active' ? t('panel.empty') : t('scene.empty')}</p> : (
+                      {operator === 'office' && <DaySummary sum={sum} staleDays={staleDays} stat={stat} onPick={setStat} />}
+                      {!shown.length ? <p className="empty">{stat ? t('panel.stats.none') : t('panel.empty')}</p> : (
                         <ul className="car-list" aria-label={t('scene.listTitle')}>
                           {shown.map((v) => (
                             <li key={v.id}>
                               <button type="button" className="car-row" onClick={() => select(v.id)}>
                                 <Plate value={v.plate} /><StateChip state={v.state} />
-                                <span className="sub"><span>{v.make} {v.model}</span><span>· {t(`locations.${v.location || 'none'}`)}</span>{v.pending && <span className="pend">{t('panel.pendingSync')}</span>}</span>
+                                <span className="sub">
+                                  <span>{v.make} {v.model}</span><span>· {t(`locations.${v.location || 'none'}`)}</span>
+                                  {v.etaAt && v.state !== 'delivered' && <span>· {t('panel.etaShort', { date: date(v.etaAt, { day: 'numeric', month: 'short' }) })}</span>}
+                                  {isOverdue(v) && <span className="late">{t('panel.late')}</span>}
+                                  {v.pending && <span className="pend">{t('panel.pendingSync')}</span>}
+                                </span>
+                                {v.tags?.length > 0 && <span className="sub row-tags">{v.tags.slice(0, 2).map((x) => <span className="mini-tag" key={x}>{x}</span>)}{v.tags.length > 2 && <span className="mini-tag">+{v.tags.length - 2}</span>}</span>}
                               </button>
                             </li>
                           ))}
                         </ul>
                       )}
-                      <p className="hint">{t('panel.selectHint')}</p>
+                      {hint && !stat && <p className="hint" role="note">{t('panel.selectHint')}</p>}
                     </>
                   )}
           </div>

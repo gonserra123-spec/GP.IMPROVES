@@ -7,7 +7,7 @@ import { SignJWT } from 'npm:jose@5';
 import { allowed, clientIp, db, json, open, randomToken, sha256, sleep, verifyPin } from '../_shared/http.ts';
 import { capacities, locationsFor, OPERATORS, pickSlot, preferredLocations } from '../_shared/domain.js';
 import { classifyPlate } from '../_shared/plates.js';
-import { cleanText, isPin, isUuid, normalizePhone, parseCost, validateNewVehicle, validatePart, validatePatch } from '../_shared/validate.js';
+import { NOTE_TAGS_MAX, TAGS_PER_VEHICLE, cleanTags, cleanText, isPin, isUuid, normalizePhone, parseCost, validateNewVehicle, validatePart, validatePatch, validateWorkshopSettings } from '../_shared/validate.js';
 import catalog from '../_shared/models.json' with { type: 'json' };
 
 const COOKIE = 'tg_session';
@@ -36,7 +36,7 @@ async function panelDto(sb: Sb, v: Row) {
     id: v.id, plate: v.plate, plateKind: v.plate_kind, modelId: v.model_id, make: v.make, model: v.model, bodyType: v.body_type, dims: v.dims,
     state: v.state, location: v.location, slot: v.slot, notes: v.notes, costEstimate: v.cost_estimate, costFinal: v.cost_final,
     enteredAt: v.entered_at, etaAt: v.eta_at, deliveredAt: v.delivered_at, rev: v.rev, updatedAt: v.updated_at, lastBy: v.last_by,
-    hasPhone: !!v.phone, phoneLast4: v.phone ? v.phone.slice(-4) : null,
+    hasPhone: !!v.phone, phoneLast4: v.phone ? v.phone.slice(-4) : null, publicCode: v.public_code, tags: v.tags ?? [],
     parts: (parts ?? []).map((p: Row) => ({ id: p.id, description: p.description, state: p.state, etaAt: p.eta_at })),
     history: (hist ?? []).map((x: Row) => ({ at: x.at, by: x.by, type: x.type, from: x.from_value, to: x.to_value })),
   };
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     if (!valid) { await sleep(started + 420 - Date.now()); return fail('bad_credentials', 401); }
     const token = randomToken(); const sid = randomToken().slice(0, 12);
     await sb.from('panel_sessions').insert({ token_hash: await sha256(token), workshop_id: w.id, operator: body.operator, sid, expires_at: new Date(Date.now() + TTL_S * 1000).toISOString() });
-    return out({ ok: true, operator: body.operator, sid, workshop: { id: w.id, name: w.name, code: w.code, logo: w.logo_url, brandColor: w.brand_color, template: w.template, timezone: w.timezone, retentionDays: w.retention_days } }, 200, { 'Set-Cookie': cookie(token) });
+    return out({ ok: true, operator: body.operator, sid, workshop: { id: w.id, name: w.name, code: w.code, logo: w.logo_url, brandColor: w.brand_color, template: w.template, timezone: w.timezone, retentionDays: w.retention_days, staleDays: w.stale_days, noteTags: w.note_tags } }, 200, { 'Set-Cookie': cookie(token) });
   }
 
   const s = await session(sb, req);
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
   switch (body.action) {
     case 'session':
-      return out({ ok: true, operator: s.operator, sid: s.sid, workshop: { id: w.id, name: w.name, code: w.code, logo: w.logo_url, brandColor: w.brand_color, template: tpl, timezone: w.timezone, retentionDays: w.retention_days } });
+      return out({ ok: true, operator: s.operator, sid: s.sid, workshop: { id: w.id, name: w.name, code: w.code, logo: w.logo_url, brandColor: w.brand_color, template: tpl, timezone: w.timezone, retentionDays: w.retention_days, staleDays: w.stale_days, noteTags: w.note_tags } });
     case 'logout':
       await sb.from('panel_sessions').delete().eq('token_hash', await sha256(s.token));
       return out({ ok: true }, 200, { 'Set-Cookie': cookie('', true) });
@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
       if (p.costEstimate !== undefined) upd.cost_estimate = parseCost(p.costEstimate);
       if (p.costFinal !== undefined) upd.cost_final = parseCost(p.costFinal);
       if (p.etaAt !== undefined) upd.eta_at = p.etaAt || null;
+      if (p.tags !== undefined) upd.tags = cleanTags(p.tags, TAGS_PER_VEHICLE);
       if (p.phone !== undefined) upd.phone = normalizePhone(p.phone) || null;
       // El índice único de plazas rechaza la escritura si otro dispositivo ocupó la plaza entre medias.
       // Control optimista: solo se escribe si nadie cambió la fila desde que se leyó (misma rev).
@@ -221,6 +222,17 @@ Deno.serve(async (req) => {
       if (!Number.isInteger(d) || (d as number) < 1 || (d as number) > 365) return out({ ok: false, error: 'validation', errors: { retentionDays: 'invalid' } }, 422);
       await sb.from('workshops').update({ retention_days: d }).eq('id', wid);
       return out({ ok: true, workshop: { id: w.id, name: w.name, code: w.code, logo: w.logo_url, brandColor: w.brand_color, template: tpl, timezone: w.timezone, retentionDays: d } });
+    }
+    case 'workshop_set': {
+      const p = (body.patch ?? {}) as Row;
+      const val = validateWorkshopSettings(p);
+      if (!val.ok) return out({ ok: false, error: 'validation', errors: val.errors }, 422);
+      const upd: Row = {};
+      if (p.retentionDays !== undefined) upd.retention_days = p.retentionDays;
+      if (p.staleDays !== undefined) upd.stale_days = p.staleDays;
+      if (p.noteTags !== undefined) upd.note_tags = p.noteTags === null ? null : cleanTags(p.noteTags, NOTE_TAGS_MAX);
+      const { data: nw } = await sb.from('workshops').update(upd).eq('id', wid).select().single();
+      return out({ ok: true, workshop: { id: nw.id, name: nw.name, code: nw.code, logo: nw.logo_url, brandColor: nw.brand_color, template: tpl, timezone: nw.timezone, retentionDays: nw.retention_days, staleDays: nw.stale_days, noteTags: nw.note_tags } });
     }
     default: return fail('not_found', 404);
   }
