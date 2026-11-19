@@ -72,7 +72,7 @@ async function send(api, op) {
 export const usePanel = create((set, get) => ({
   status: 'boot', // boot | login | ready
   config: null, workshop: null, operator: null, sid: null,
-  vehicles: [], queue: load(QUEUE_KEY, []), online: true, live: false, toasts: [],
+  vehicles: [], queue: load(QUEUE_KEY, []), online: true, live: false, toasts: [], apptTick: 0,
 
   toast(kind, text, vars) {
     const id = uuid();
@@ -141,7 +141,8 @@ export const usePanel = create((set, get) => ({
     if (e.kind === 'hello') { set({ sid: e.sid, live: true }); return; }
     if (e.kind === 'up') { set({ live: true }); if (!get().online || get().queue.length) get().flush().then(() => get().reload()); return; }
     if (e.kind === 'down') { set({ live: false }); return; }
-    if (e.kind === 'reset') { get().reload(); return; }
+    if (e.kind === 'reset') { get().reload(); set((s) => ({ apptTick: s.apptTick + 1 })); return; }
+    if (e.kind === 'appointments') { set((s) => ({ apptTick: s.apptTick + 1 })); return; }
     const busy = new Set(get().queue.map((q) => q.id));
     if (e.kind === 'delete') { set((s) => ({ vehicles: s.vehicles.filter((v) => v.id !== e.id) })); get().persist(); return; }
     if (e.kind === 'vehicle') {

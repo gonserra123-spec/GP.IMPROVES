@@ -21,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Abre `http://localhost:5200`. Panel: código `DEMO01`, PIN `2468`. Consulta: `http://localhost:5200/consulta/DEMO01` con, por ejemplo, la matrícula `1234 BCD` (el coste se ve con las cifras `0101`).
+Abre `http://localhost:5200`. La landing incluye un tablero «en directo» con el móvil del cliente sincronizado y una calculadora de llamadas; `http://localhost:5200/tv` es la pantalla para la sala de espera (todo con datos ficticios). Panel: código `DEMO01`, PIN `2468`. Consulta: `http://localhost:5200/consulta/DEMO01` con, por ejemplo, la matrícula `1234 BCD` (el coste se ve con las cifras `0101`).
 
 La API de demo (`server/`) se monta dentro de Vite, así que no hay que arrancar nada más. Los datos viven en memoria y vuelven a los fixtures al reiniciar.
 
@@ -124,3 +124,10 @@ Si falta el código o el PIN, el servidor avisa por consola y no crea ningún ta
 - **Landing:** la cabecera tiene tres enlaces (Cómo funciona, Probar demo, Contacto); el resto está en el pie.
 
 Con Supabase: aplicar `supabase/migrations/0002_panel_mejoras.sql` y volver a desplegar las funciones `panel` y `consulta`. Está escrito pero no se ha probado contra un proyecto real.
+
+## Citas y clientes habituales
+
+- **Cita del cliente** (`/cita/CODIGO`, en la demo `/cita/DEMO01`): matrícula, correo, día, franja y motivo. Si la matrícula ya es de un cliente del taller, se reconoce y no se pide el coche. La reserva no pisa los datos de contacto que el taller ya tenía.
+- **Panel → Citas**: aparecen arriba; «Ha llegado» da de alta el coche con un toque.
+- **Panel → Clientes**: importa un CSV exportado de su programa de gestión (`;`, `,` o tabulador; columnas matrícula, marca, modelo o vehículo, teléfono y correo). Hay plantilla descargable, vista previa y rechazo fila a fila.
+- **Pendiente**: envío real de correos de confirmación y las acciones equivalentes en las Edge Functions de Supabase (`customers_summary`, `customers_import`, `appt_list`, `appt_arrive`, `appt_cancel`, `customer_check`, `book`), con sus tablas y RLS. Antes de importar datos reales hace falta el contrato de encargado del tratamiento con cada taller.

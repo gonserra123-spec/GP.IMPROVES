@@ -64,5 +64,13 @@ export function createSupabaseAdapter() {
     publicRefresh: (token) => consulta('refresh', { token }),
     publicVerify: (input) => consulta('verify', input),
     contact: async () => ({ ok: false, status: 501, error: 'not_configured' }),
+    // Clientes habituales y citas: acciones pendientes de implementar en las Edge Functions (ver docs/deploy-supabase.md).
+    customersSummary: () => panel('customers_summary'),
+    importCustomers: (rows) => panel('customers_import', { rows }),
+    listAppointments: () => panel('appt_list'),
+    arriveAppointment: (id) => panel('appt_arrive', { id }),
+    cancelAppointment: (id) => panel('appt_cancel', { id }),
+    publicCustomerCheck: (input) => consulta('customer_check', input),
+    publicBook: (input) => consulta('book', input),
   };
 }

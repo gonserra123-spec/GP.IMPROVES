@@ -41,4 +41,4 @@ createServer(async (req, res) => {
   res.writeHead(200, { 'Content-Type': TYPES[extname(found)] || 'application/octet-stream', 'Cache-Control': hashed ? 'public, max-age=31536000, immutable' : 'no-cache' });
   if (req.method === 'HEAD') return res.end();
   res.end(await readFile(found));
-}).listen(PORT, () => console.log(`Tridom Garage (demo) en http://localhost:${PORT}`));
+}).listen(PORT, () => console.log(`Tridom Automotive (demo) en http://localhost:${PORT}`));

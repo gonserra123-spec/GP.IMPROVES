@@ -7,3 +7,4 @@
 - **Tono**: serio, limpio y profesional; nunca infantil ni caricaturesco. Lenguaje claro para el cliente final.
 - **Sistema visual**: `DESIGN.md` («plano técnico de taller»).
 - **Reglas de contenido**: cero datos inventados. Todo lo de demostración va marcado como DEMO. Precios, contacto, redes, logo y testimonios: FALTA. No se afirma que los coches sean réplicas exactas.
+- **Calculadora de la landing**: no afirma ningún ahorro. Multiplica las cifras que mete el taller; los valores de partida son un ejemplo y la propia sección lo dice.

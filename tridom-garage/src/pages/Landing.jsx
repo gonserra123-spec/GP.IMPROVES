@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import template from '../../shared/template.json';
-import catalog from '../../shared/models.json';
 import { STATES } from '../../shared/domain.js';
 import { validateContact } from '../../shared/validate.js';
 import { useT, LangSwitch } from '../i18n/index.jsx';
@@ -10,8 +9,8 @@ import { createSpring, clamp, range } from '../lib/spring.js';
 import { tickerState } from '../lib/ticker.js';
 import { useScene } from '../scene/store.js';
 import { createSim } from '../scene/simStore.js';
-import { profileSvgPath } from '../scene/carProfile.js';
 import { getAdapter, NetworkError } from '../data/adapter.js';
+import { LiveShop, Calc, LetterWord } from './landingLive.jsx';
 
 const AZ = Math.PI / 4;
 const smooth = (t) => t * t * (3 - 2 * t);
@@ -242,58 +241,6 @@ function CustomerSection() {
   );
 }
 
-function Catalog() {
-  const { t, lang } = useT();
-  const [id, setId] = useState('seat-leon');
-  const m = catalog.find((c) => c.id === id);
-  const fig = useRef(null);
-  const draw = useRef(createSpring(reducedMotion ? 1 : 0, { tension: 40, friction: 16 }));
-  useViewport(fig, ({ progress }) => { draw.current.set(range(progress, 0.04, 0.26)); }, !reducedMotion);
-  useTick((s) => {
-    if (!draw.current.step(s.dt) || !fig.current) return;
-    for (const el of fig.current.querySelectorAll('[data-draw]')) el.style.strokeDashoffset = (1 - draw.current.value).toFixed(4);
-  }, 'write', !reducedMotion);
-  const p = profileSvgPath(m.body, m.l, m.h);
-  const num = (v) => new Intl.NumberFormat(lang === 'es' ? 'es-ES' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  const dash = reducedMotion ? {} : { pathLength: 1, strokeDasharray: 1, strokeDashoffset: 1 - draw.current.value, 'data-draw': '' };
-  return (
-    <section className="section" id="scene" data-tone="light">
-      <div className="wrap split">
-        <div>
-          <div className="sec-head">
-            <Reveal className="h-section" lines={t('landing.catalog.title')} />
-            <p className="lead">{t('landing.catalog.lead')}</p>
-          </div>
-          <Field label={t('landing.catalog.pick')} hint={t('landing.catalog.count', { n: String(catalog.length) })}>
-            {(a) => (
-              <select className="input" value={id} onChange={(e) => setId(e.target.value)} {...a}>
-                {catalog.map((c) => <option key={c.id} value={c.id}>{c.make} {c.model} · {t(`bodies.${c.body}`)}</option>)}
-              </select>
-            )}
-          </Field>
-        </div>
-        <figure className="catalog-fig" ref={fig}>
-          <svg viewBox={`-0.5 -0.55 ${(m.l + 1).toFixed(2)} ${(m.h + 1.05).toFixed(2)}`} role="img" aria-label={`${m.make} ${m.model}: ${t(`bodies.${m.body}`)}, ${num(m.l)} × ${num(m.w)} × ${num(m.h)} m`}>
-            <path className="car" d={p.lower} {...dash} />
-            <path className="car glass" d={p.cabin} {...dash} />
-            {p.wheels.map((w) => <circle key={w.cx} className="car" cx={w.cx} cy={w.cy} r={w.r} {...dash} />)}
-            <path className="dim" d={`M0 ${m.h + 0.22}H${m.l}M0 ${m.h + 0.12}v0.2M${m.l} ${m.h + 0.12}v0.2M${-0.25} 0V${m.h}M${-0.35} 0h0.2M${-0.35} ${m.h}h0.2`} />
-            <text x={m.l / 2} y={m.h + 0.46} textAnchor="middle">{num(m.l)} m</text>
-            <text x={-0.3} y={-0.14} textAnchor="start">{num(m.h)} m</text>
-            <path d={`M-0.5 ${m.h}H${m.l + 0.5}`} className="dim" strokeDasharray="0.12 0.08" />
-          </svg>
-          <dl className="dims">
-            <div><dt>{t('landing.catalog.length')}</dt><dd>{num(m.l)} m</dd></div>
-            <div><dt>{t('landing.catalog.width')}</dt><dd>{num(m.w)} m</dd></div>
-            <div><dt>{t('landing.catalog.height')}</dt><dd>{num(m.h)} m</dd></div>
-          </dl>
-          <figcaption className="hint" style={{ marginTop: 12 }}>{t('landing.catalog.dimsNote')}</figcaption>
-        </figure>
-      </div>
-    </section>
-  );
-}
-
 function Contact() {
   const { t } = useT();
   const [v, setV] = useState({ name: '', workshop: '', email: '', phone: '', message: '', consent: false, website: '' });
@@ -359,6 +306,7 @@ export default function Landing() {
       <main>
         <Hero />
         <Ribbon />
+        <LiveShop />
         <section className="section" id="how" data-tone="light">
           <div className="wrap">
             <div className="sec-head"><Reveal className="h-section" lines={t('landing.how.title')} /></div>
@@ -367,7 +315,7 @@ export default function Landing() {
         </section>
         <PanelSection />
         <CustomerSection />
-        <Catalog />
+        <Calc />
         <section className="section section--paper" id="privacy" data-tone="paper">
           <div className="wrap">
             <div className="sec-head"><Reveal className="h-section" lines={t('landing.privacy.title')} /></div>
@@ -385,10 +333,10 @@ export default function Landing() {
       </main>
       <footer className="site-footer on-dark" data-tone="dark">
         <div className="wrap footer-grid">
-          <p className="footer-word" aria-hidden="true">Tridom Garage</p>
+          <p className="footer-word" aria-hidden="true"><LetterWord text="Tridom Automotive" /></p>
           <div className="footer-meta">
             <span>{t('landing.footer.by')}</span>
-            {['panel', 'customer', 'scene', 'privacy'].map((id) => <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollToId(id); }}>{t(`nav.${id}`)}</a>)}
+            {['live', 'panel', 'customer', 'calc', 'privacy'].map((id) => <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollToId(id); }}>{t(`nav.${id}`)}</a>)}
             <span>{t('landing.footer.demo')}</span>
             <Link to="/privacidad">{t('landing.footer.legal')}</Link>
           </div>

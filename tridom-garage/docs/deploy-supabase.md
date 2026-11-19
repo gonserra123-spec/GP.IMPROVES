@@ -71,3 +71,7 @@
 3. Revisar los registros de las funciones y de Cloudflare.
 4. Si hay datos afectados, avisar al taller (responsable del tratamiento) para que valore la notificación a la AEPD en 72 horas.
 - Mejoras del panel: aplicar también `supabase/migrations/0002_panel_mejoras.sql` y volver a desplegar `panel` y `consulta` (código corto por coche, etiquetas y aviso de coches parados).
+
+## Pendiente: clientes y citas
+
+El adaptador ya llama a estas acciones, pero las Edge Functions `panel` y `consulta` aún no las implementan: `customers_summary`, `customers_import`, `appt_list`, `appt_arrive`, `appt_cancel` (panel) y `customer_check`, `book` (consulta). Hacen falta las tablas `customers` y `appointments` con RLS por taller, límite de 2000 filas por importación y las mismas reglas que `shared/customers.js` (se copian con `npm run supabase:shared`). Un cliente que reserva no debe poder sobrescribir el correo ni el teléfono ya guardados.

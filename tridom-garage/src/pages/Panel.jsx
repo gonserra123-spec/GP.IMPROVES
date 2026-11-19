@@ -9,6 +9,7 @@ import { usePanel } from '../data/panelStore.js';
 import { getAdapter, NetworkError } from '../data/adapter.js';
 import { useScene } from '../scene/store.js';
 import { isOverdue } from '../lib/days.js';
+import { Appointments, Customers } from './panelCitas.jsx';
 import { AlbaranBlock, DaySummary, EtaBlock, Settings, TagsBlock, recalledLogin, rememberLogin, summaryOf, useOnceFlag } from './panelParts.jsx';
 
 const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -329,6 +330,7 @@ export default function Panel() {
         <span className="grow" />
         <span className="net" data-off={!online || queue.length > 0} role="status">{online && !queue.length ? t('panel.online') : `${t('panel.offline')}${queue.length ? ` · ${t('panel.offlineQueue', { n: String(queue.length) })}` : ''}`}</span>
         <LangSwitch />
+        <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setFrom(null); setView('customers'); setTab('list'); }}>{t('panel.customers.nav')}</Btn>
         <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setFrom(null); setView('settings'); setTab('list'); }}>{t('panel.settings.title')}</Btn>
         <Btn variant="ghost sm" onClick={() => { useScene.getState().select(null); setStat(null); setFrom(null); setView('list'); logout(); }}>{t('panel.logout')}</Btn>
       </header>
@@ -344,10 +346,12 @@ export default function Panel() {
           <div className="board-side">
             {selected ? <Detail v={selected} onBack={() => select(null)} />
               : view === 'new' ? <NewCar onDone={(id) => { setView('list'); if (id) select(id); }} />
+                : view === 'customers' ? <Customers onBack={() => setView('list')} />
                 : view === 'settings' ? <Settings onBack={() => setView('list')} onOpen={(id) => select(id, 'settings')} />
                   : (
                     <>
                       <div className="side-head"><Btn onClick={() => setView('new')}>+ {t('panel.newCar')}</Btn></div>
+                      <Appointments onOpen={(id) => select(id)} />
                       {operator === 'office' && <DaySummary sum={sum} staleDays={staleDays} stat={stat} onPick={setStat} />}
                       {!shown.length ? <p className="empty">{stat ? t('panel.stats.none') : t('panel.empty')}</p> : (
                         <ul className="car-list" aria-label={t('scene.listTitle')}>

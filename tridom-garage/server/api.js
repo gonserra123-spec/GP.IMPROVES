@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { classifyPlate, normalizePlate } from '../shared/plates.js';
 import { OPERATORS } from '../shared/domain.js';
 import { isPin, isUuid, isVehicleCode, validateContact, validateNewVehicle, validatePart, validatePatch, validateWorkshopSettings } from '../shared/validate.js';
+import { MAX_IMPORT_ROWS, validateBooking, validateImportRow } from '../shared/customers.js';
 import * as store from './store.js';
 import {
   clientIp, createLimiter, createSession, destroySession, getSession, isLoopback, readToken, resetSessions,
@@ -21,6 +22,9 @@ const limits = {
   loginIp: createLimiter({ windowMs: 5 * MIN, max: 5 }),
   loginWorkshop: createLimiter({ windowMs: 15 * MIN, max: 20 }),
   contactIp: createLimiter({ windowMs: 10 * MIN, max: 3 }),
+  checkIp: createLimiter({ windowMs: MIN, max: 10 }),
+  checkPlate: createLimiter({ windowMs: 10 * MIN, max: 6 }),
+  bookIp: createLimiter({ windowMs: 10 * MIN, max: 5 }),
   panelIp: createLimiter({ windowMs: MIN, max: 240 }),
 };
 const seenOps = new Map(); // idempotencia de la cola offline: opId -> respuesta
@@ -33,12 +37,12 @@ function send(res, status, body, headers = {}) {
   res.end(body === undefined ? '' : JSON.stringify(body));
 }
 
-async function readJson(req) {
+async function readJson(req, max = 16_384) {
   if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) return null;
   let size = 0; const chunks = [];
   for await (const c of req) {
     size += c.length;
-    if (size > 16_384) return null;
+    if (size > max) return null;
     chunks.push(c);
   }
   try {
@@ -86,6 +90,35 @@ async function publicLookup(req, res, body) {
   }
   if (!v) return publicReply(res, started, NOT_AVAILABLE);
   return publicReply(res, started, { ok: true, token: signToken({ v: v.id, w: workshop.id }, VIEW_TTL), ...store.publicDto(v) });
+}
+
+// Cita: ¿el taller ya conoce este coche? Responde solo marca y modelo, con el mismo suelo de tiempo y límite de intentos.
+async function publicCustomerCheck(req, res, body) {
+  const started = Date.now();
+  const ip = clientIp(req);
+  if (!limits.checkIp.hit(ip).ok) return send(res, 429, { ok: false, error: 'rate_limited' }, { 'Retry-After': String(limits.checkIp.retryAfter(ip)) });
+  const workshop = typeof body.code === 'string' ? store.findWorkshopByCode(body.code) : null;
+  const plate = normalizePlate(body.plate);
+  if (body.website || !workshop || !classifyPlate(plate)) return publicReply(res, started, { ok: true, known: false });
+  const key = `${workshop.id}:${plate}`;
+  if (!limits.checkPlate.hit(key).ok) return send(res, 429, { ok: false, error: 'rate_limited' });
+  const c = store.findCustomer(workshop.id, plate);
+  return publicReply(res, started, c ? { ok: true, known: true, make: c.make, model: c.model } : { ok: true, known: false });
+}
+
+async function publicBook(req, res, body) {
+  const started = Date.now();
+  const ip = clientIp(req);
+  if (!limits.bookIp.hit(ip).ok) return send(res, 429, { ok: false, error: 'rate_limited' }, { 'Retry-After': String(limits.bookIp.retryAfter(ip)) });
+  const workshop = typeof body.code === 'string' ? store.findWorkshopByCode(body.code) : null;
+  if (body.website) return publicReply(res, started, { ok: true });
+  if (!workshop) return publicReply(res, started, { ok: false, error: 'not_found' }, 404);
+  const known = !!store.findCustomer(workshop.id, normalizePlate(body.plate));
+  const v = validateBooking(body, store.CATALOG, { known });
+  if (!v.ok) return send(res, 422, { ok: false, error: 'validation', errors: v.errors });
+  const r = store.createAppointment(workshop.id, { plate: v.plate, plateKind: classifyPlate(v.plate), email: v.email, phone: v.phone, vehicle: v.vehicle, date: body.date, slot: body.slot, reason: v.reason });
+  if (r.error) return send(res, r.status, { ok: false, error: r.error });
+  return publicReply(res, started, { ok: true, date: r.appointment.date, slot: r.appointment.slot, known: r.known }, 201);
 }
 
 async function publicRefresh(req, res, body) {
@@ -159,6 +192,8 @@ async function panel(req, res, path, method) {
     if (path === '/session') return send(res, 200, { ok: true, workshop: store.workshopPanel(store.getWorkshop(wid)), operator: session.operator, sid: session.sid });
     if (path === '/vehicles') return send(res, 200, { ok: true, vehicles: store.listVehicles(wid) });
     if (path === '/events') return eventsStream(req, res, session);
+    if (path === '/customers/summary') return send(res, 200, { ok: true, ...store.customerSummary(wid) });
+    if (path === '/appointments') return send(res, 200, { ok: true, appointments: store.listAppointments(wid) });
     const ex = /^\/vehicles\/([^/]+)\/export$/.exec(path);
     if (ex && isUuid(ex[1])) {
       const data = store.exportVehicle(wid, ex[1]);
@@ -173,7 +208,7 @@ async function panel(req, res, path, method) {
     res.setHeader('Set-Cookie', sessionCookie('', { secure: isSecure(req), clear: true }));
     return send(res, 200, { ok: true });
   }
-  const body = method === 'DELETE' ? {} : await readJson(req);
+  const body = method === 'DELETE' ? {} : await readJson(req, path === '/customers/import' ? 400_000 : 16_384);
   if (!body) return send(res, 400, { ok: false, error: 'invalid' });
 
   const opKey = typeof body.opId === 'string' && isUuid(body.opId) ? `${wid}:${body.opId}` : null;
@@ -193,6 +228,18 @@ async function panel(req, res, path, method) {
       id: body.id, plate: v.plate, plateKind: classifyPlate(v.plate), model: v.model, make: body.make, modelName: body.model, bodyType: body.bodyType, phone: v.phone,
     }), 201);
   }
+  if (path === '/customers/import' && method === 'POST') {
+    if (!Array.isArray(body.rows) || !body.rows.length || body.rows.length > MAX_IMPORT_ROWS) return send(res, 422, { ok: false, error: 'validation', errors: { rows: 'invalid' } });
+    const good = []; const bad = [];
+    body.rows.forEach((raw, i) => {
+      const r = validateImportRow(raw && typeof raw === 'object' ? raw : {}, store.CATALOG);
+      if (r.ok) good.push(r.row); else bad.push({ line: Number.isInteger(raw?.line) ? raw.line : i + 2, errors: r.errors });
+    });
+    const done = store.importCustomers(wid, good);
+    return send(res, 200, { ok: true, ...done, rejected: bad.length, rejectedRows: bad.slice(0, 30), ...store.customerSummary(wid) });
+  }
+  const ap = /^\/appointments\/([^/]+)\/(arrive|cancel)$/.exec(path);
+  if (ap && method === 'POST' && isUuid(ap[1])) return reply(ap[2] === 'arrive' ? store.arriveAppointment(wid, session, ap[1]) : store.cancelAppointment(wid, session, ap[1]));
   if (path === '/retention/run' && method === 'POST') return send(res, 200, { ok: true, deleted: store.runRetention() });
   if (path === '/workshop' && method === 'PATCH') {
     const v = validateWorkshopSettings(body);
@@ -246,13 +293,15 @@ export async function handleApi(req, res) {
       const w = store.findWorkshopByCode(ws[1]);
       return w ? send(res, 200, { ok: true, workshop: store.workshopPublic(w) }) : send(res, 404, { ok: false });
     }
-    if (method === 'POST' && ['/public/lookup', '/public/refresh', '/public/verify', '/contact', '/demo/reset'].includes(path)) {
+    if (method === 'POST' && ['/public/lookup', '/public/refresh', '/public/verify', '/public/customer-check', '/public/book', '/contact', '/demo/reset'].includes(path)) {
       if (!sameOrigin(req)) return send(res, 403, { ok: false, error: 'forbidden' });
       const body = await readJson(req);
       if (!body) return send(res, 400, { ok: false, error: 'invalid' });
       if (path === '/public/lookup') return publicLookup(req, res, body);
       if (path === '/public/refresh') return publicRefresh(req, res, body);
       if (path === '/public/verify') return publicVerify(req, res, body);
+      if (path === '/public/customer-check') return publicCustomerCheck(req, res, body);
+      if (path === '/public/book') return publicBook(req, res, body);
       if (path === '/contact') {
         const ip = clientIp(req);
         if (!limits.contactIp.hit(ip).ok) return send(res, 429, { ok: false, error: 'rate_limited' });

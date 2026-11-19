@@ -1,6 +1,6 @@
 {
-  "name": "Tridom Garage · Panel del taller",
-  "short_name": "Tridom Garage",
+  "name": "Tridom Automotive · Panel del taller",
+  "short_name": "Tridom Automotive",
   "description": "Seguimiento de vehículos para talleres mecánicos.",
   "lang": "es",
   "start_url": "/panel",

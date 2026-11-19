@@ -20,6 +20,10 @@ const DAY = 86_400_000;
 const MAX_VEHICLES = 300; // por taller, contando entregados pendientes de retención
 const workshops = new Map();
 const vehicles = new Map();
+const customers = new Map(); // `${taller}:${matrícula}` -> cliente habitual (importado, de una cita o del alta)
+const appointments = new Map();
+const MAX_CUSTOMERS = 5000;
+const MAX_APPOINTMENTS = 500;
 
 // Código corto único por coche (QR del albarán). No se puede adivinar: ~10^9 combinaciones y con límite de intentos.
 function newCode() {
@@ -51,7 +55,7 @@ function seedVehicle(wid, now, spec) {
 }
 
 export function seed(now = Date.now()) {
-  workshops.clear(); vehicles.clear();
+  workshops.clear(); vehicles.clear(); customers.clear(); appointments.clear();
   if (!DEMO) { seedProduction(); return; }
   const w = {
     id: 'w-demo', name: 'Taller Demo', code: 'DEMO01', logo: null, brandColor: '#2F6FED',
@@ -72,6 +76,22 @@ export function seed(now = Date.now()) {
     { plate: '4680GHJ', model: 'kia-sportage', state: 'delivered', daysAgo: 6, deliveredDaysAgo: 2, final: 410 },
   ];
   for (const f of F) seedVehicle(w.id, now, f);
+  const C = [
+    ['8024CDF', 'opel-corsa', '+34600000105', 'cliente05@example.com'], ['4680GHJ', 'kia-sportage', null, 'cliente06@example.com'],
+    ['0147LMN', 'seat-ibiza', '+34600000201', 'cliente07@example.com'], ['5821PRS', 'renault-captur', '+34600000202', 'cliente08@example.com'],
+    ['9930TVW', 'toyota-yaris', null, 'cliente09@example.com'], ['2275BZD', 'volkswagen-polo', '+34600000204', null],
+    ['6618FKH', 'dacia-sandero', '+34600000205', 'cliente11@example.com'], ['3094JNP', 'ford-focus', '+34600000206', 'cliente12@example.com'],
+  ];
+  for (const [plate, id, phone, email] of C) {
+    const m = CATALOG.find((c) => c.id === id);
+    upsertCustomer(w.id, { plate, plateKind: 'es_current', modelId: m.id, make: m.make, model: m.model, bodyType: m.body, phone, email }, 'import');
+  }
+  const A = [['0147LMN', 1, 'morning', 'Cambio de aceite y filtros'], ['5821PRS', 2, 'afternoon', 'Ruido al frenar en las curvas']];
+  for (const [plate, plus, slot, reason] of A) {
+    const c = customers.get(`${w.id}:${plate}`);
+    const id = randomUUID();
+    appointments.set(id, { id, workshopId: w.id, plate, plateKind: 'es_current', modelId: c.modelId, make: c.make, model: c.model, bodyType: c.bodyType, phone: c.phone, email: c.email, date: isoDay(now + plus * DAY), slot, reason, status: 'booked', createdAt: new Date(now).toISOString(), vehicleId: null });
+  }
 }
 // Sin demo: un único taller definido por variables de entorno y sin coches.
 function seedProduction() {
@@ -136,6 +156,7 @@ export function createVehicle(wid, session, data) {
     rev: 1, updatedAt: now, lastSession: session.sid, lastBy: session.operator,
   };
   vehicles.set(v.id, v);
+  upsertCustomer(wid, { plate: v.plate, plateKind: v.plateKind, modelId: v.modelId, make: v.make, model: v.model, bodyType: v.bodyType, phone: v.phone, email: null }, 'panel', { fill: true, visit: now });
   emit(wid, { kind: 'vehicle', vehicle: panelDto(v), sid: session.sid });
   return { vehicle: panelDto(v) };
 }
@@ -254,6 +275,9 @@ export function runRetention(now = Date.now()) {
       emit(w.id, { kind: 'delete', id: v.id, sid: null });
     }
   }
+  for (const a of [...appointments.values()]) {
+    if (a.status !== 'booked' && Date.parse(`${a.date}T00:00:00Z`) + 30 * DAY < now) appointments.delete(a.id);
+  }
   return deleted;
 }
 
@@ -277,3 +301,85 @@ export function publicDto(v) {
   };
 }
 export const publicCost = (v) => ({ estimate: v.costEstimate, final: v.costFinal });
+
+// ---------- Clientes habituales y citas ----------
+function ckey(wid, plate) { return `${wid}:${plate}`; }
+function ofWid(map, wid) { return [...map.values()].filter((x) => x.workshopId === wid); }
+
+// Crea o completa un cliente. Con `fill` solo rellena lo que falta (nunca pisa datos que ya tiene el taller).
+export function upsertCustomer(wid, d, source = 'import', { fill = false, visit = null } = {}) {
+  const key = ckey(wid, d.plate);
+  const cur = customers.get(key);
+  if (!cur) {
+    if (ofWid(customers, wid).length >= MAX_CUSTOMERS) return 'skipped';
+    customers.set(key, {
+      workshopId: wid, plate: d.plate, plateKind: d.plateKind, modelId: d.modelId ?? null, make: d.make, model: d.model, bodyType: d.bodyType,
+      phone: d.phone || null, email: d.email || null, source, createdAt: new Date().toISOString(), lastVisit: visit,
+    });
+    return 'created';
+  }
+  for (const k of ['phone', 'email']) if (d[k] && (!fill || !cur[k])) cur[k] = d[k];
+  if (!fill) Object.assign(cur, { modelId: d.modelId ?? cur.modelId, make: d.make || cur.make, model: d.model || cur.model, bodyType: d.bodyType || cur.bodyType });
+  if (visit) cur.lastVisit = visit;
+  return 'updated';
+}
+
+export const findCustomer = (wid, plate) => customers.get(ckey(wid, plate)) || null;
+export const customerSummary = (wid) => {
+  const list = ofWid(customers, wid);
+  return { count: list.length, withEmail: list.filter((c) => c.email).length, withPhone: list.filter((c) => c.phone).length };
+};
+
+// Importación en bloque: ya validada fila a fila por el servidor. Devuelve cuántas se crearon, actualizaron u omitieron.
+export function importCustomers(wid, rows) {
+  const out = { created: 0, updated: 0, skipped: 0 };
+  for (const r of rows) out[upsertCustomer(wid, r, 'import')] += 1;
+  return out;
+}
+
+const maskEmail = (e) => (e ? `${e[0]}***@${e.split('@')[1]}` : null);
+export const apptDto = (a) => ({ id: a.id, plate: a.plate, make: a.make, model: a.model, date: a.date, slot: a.slot, reason: a.reason, status: a.status, hasEmail: !!a.email, emailMasked: maskEmail(a.email), hasPhone: !!a.phone, phoneLast4: a.phone ? a.phone.slice(-4) : null, vehicleId: a.vehicleId });
+export const listAppointments = (wid) => ofWid(appointments, wid)
+  .filter((a) => a.status === 'booked')
+  .sort((x, y) => `${x.date}${x.slot}`.localeCompare(`${y.date}${y.slot}`)).map(apptDto);
+
+export function createAppointment(wid, d) {
+  const cust = findCustomer(wid, d.plate);
+  const veh = cust ? { modelId: cust.modelId, make: cust.make, model: cust.model, bodyType: cust.bodyType } : d.vehicle;
+  if (!veh) return { error: 'invalid', status: 400 };
+  const dup = ofWid(appointments, wid).find((a) => a.status === 'booked' && a.plate === d.plate && a.date === d.date);
+  if (dup) return { appointment: apptDto(dup), known: !!cust };
+  if (ofWid(appointments, wid).length >= MAX_APPOINTMENTS) return { error: 'workshop_full', status: 409 };
+  // Quien reserva puede no ser el dueño: no se pisan los datos de contacto que el taller ya tiene de ese coche.
+  upsertCustomer(wid, { plate: d.plate, plateKind: d.plateKind, ...veh, phone: d.phone, email: d.email }, 'cita', { fill: true });
+  const a = {
+    id: randomUUID(), workshopId: wid, plate: d.plate, plateKind: d.plateKind, ...veh, phone: d.phone || null, email: d.email,
+    date: d.date, slot: d.slot, reason: d.reason, status: 'booked', createdAt: new Date().toISOString(), vehicleId: null,
+  };
+  appointments.set(a.id, a);
+  emit(wid, { kind: 'appointments', sid: null });
+  return { appointment: apptDto(a), known: !!cust };
+}
+
+const ownAppt = (wid, id) => { const a = appointments.get(id); return a && a.workshopId === wid ? a : null; };
+
+// «Ha llegado»: da de alta el coche en el taller con los datos de la cita y cierra la cita.
+export function arriveAppointment(wid, session, id) {
+  const a = ownAppt(wid, id);
+  if (!a || a.status !== 'booked') return { error: 'not_found', status: 404 };
+  const model = a.modelId ? CATALOG.find((c) => c.id === a.modelId) || null : null;
+  const r = createVehicle(wid, session, { plate: a.plate, plateKind: a.plateKind, model, make: a.make, modelName: a.model, bodyType: a.bodyType, phone: a.phone });
+  if (r.error) return r;
+  a.status = 'arrived'; a.vehicleId = r.vehicle.id;
+  const c = findCustomer(wid, a.plate); if (c) c.lastVisit = new Date().toISOString();
+  emit(wid, { kind: 'appointments', sid: session.sid });
+  return { vehicle: r.vehicle, appointment: apptDto(a) };
+}
+
+export function cancelAppointment(wid, session, id) {
+  const a = ownAppt(wid, id);
+  if (!a || a.status !== 'booked') return { error: 'not_found', status: 404 };
+  a.status = 'cancelled';
+  emit(wid, { kind: 'appointments', sid: session.sid });
+  return { appointment: apptDto(a) };
+}

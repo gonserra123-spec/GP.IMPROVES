@@ -130,5 +130,5 @@ export function SceneHost({ listVehicles, onSelect, selectedId, ...props }) {
 }
 
 export function Wordmark({ to = '/' }) {
-  return <Link to={to} className="wordmark" aria-label="Tridom Garage">Tridom <b>Garage</b></Link>;
+  return <Link to={to} className="wordmark" aria-label="Tridom Automotive">Tridom <b>Automotive</b></Link>;
 }

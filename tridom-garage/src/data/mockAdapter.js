@@ -46,5 +46,13 @@ export function createMockAdapter() {
     publicRefresh: (token) => call('POST', '/public/refresh', { token }),
     publicVerify: (input) => call('POST', '/public/verify', input),
     contact: (input) => call('POST', '/contact', input),
+    // Clientes habituales y citas
+    customersSummary: () => call('GET', '/panel/customers/summary'),
+    importCustomers: (rows) => call('POST', '/panel/customers/import', { rows }),
+    listAppointments: () => call('GET', '/panel/appointments'),
+    arriveAppointment: (id) => call('POST', `/panel/appointments/${id}/arrive`, {}),
+    cancelAppointment: (id) => call('POST', `/panel/appointments/${id}/cancel`, {}),
+    publicCustomerCheck: (input) => call('POST', '/public/customer-check', input),
+    publicBook: (input) => call('POST', '/public/book', input),
   };
 }
