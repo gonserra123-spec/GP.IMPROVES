@@ -43,3 +43,14 @@ Si más adelante se añaden GLB (Kenney, Quaternius, Poly Pizza, Sketchfab), sol
 ## Iconos e imágenes
 
 Los iconos de la interfaz y el favicon son SVG propios dibujados para este proyecto. No hay fotografías.
+
+## Fotos de la web del taller (`public/taller/`)
+
+Fotos de archivo de Unsplash, con la [licencia de Unsplash](https://unsplash.com/license) (uso comercial gratis, sin atribución obligatoria; no se pueden revender tal cual). Se muestran con el aviso «Fotos de archivo» hasta tener las del taller. Descargadas el 2026-11-20.
+
+| Fichero | Original |
+|---|---|
+| `zona-trabajo.jpg` | https://unsplash.com/photos/XP8o9_Arwqg |
+| `equipo.jpg` | https://unsplash.com/photos/SQlUL097Uys |
+| `mecanico.jpg` | https://unsplash.com/photos/jL9zfzTVSwY |
+| `herramientas.jpg` | https://unsplash.com/photos/OegFhZfw6Ok |

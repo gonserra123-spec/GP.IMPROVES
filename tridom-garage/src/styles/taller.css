@@ -1,0 +1,111 @@
+/* ---------- Web pública del taller (/). Mismos tokens que app.css: ver DESIGN.md. ---------- */
+
+/* Paleta del taller: grafito, acero y azul marino. Solo en la web del taller y en su consulta y citas
+   (App.jsx pone data-site="taller" en <html>). Contrastes: blanco sobre --blue-500 10,9:1; --mute sobre --paper 6:1. */
+:root[data-site='taller'] {
+  --paper: #eceef1; --grid: #d2d7de; --blue-100: #e2e6eb; --blue-500: #2c3e57; --blue-700: #2c4a73; --blue-900: #141f33;
+  --ink: #161a20; --mute: #505b68; --soft: #bcc4ce;
+}
+[data-site='taller'] .site-footer, [data-site='taller'] .section--dark .lead, [data-site='taller'] .section--dark p, [data-site='taller'] .section--dark .points span { color: var(--soft); }
+
+/* Hero: la matrícula a la izquierda, la nave a la derecha. */
+.th-hero { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); background: var(--white); }
+.th-hero-copy { position: relative; z-index: 2; display: grid; align-content: center; gap: 22px; padding: 112px 0 64px clamp(24px, 5vw, 80px); max-width: 600px; }
+.th-hero-copy .sign-plate, .info-card .sign-plate { justify-self: start; }
+.sign-plate { font-family: var(--font-sign); font-weight: 700; font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 12px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-s); color: var(--blue-900); background: var(--white); }
+.th-hero-scene { position: relative; z-index: 1; margin-left: -6%; min-height: 360px; }
+.th-hero-scene .scene { position: absolute; inset: 0; }
+.th-scene-bar { position: absolute; right: clamp(16px, 3vw, 32px); bottom: 24px; z-index: 3; display: flex; align-items: center; gap: 12px; }
+.th-scene-bar .btn { background: var(--white); }
+
+/* Campo de matrícula con banda europea. */
+.plate-form { display: grid; gap: 14px; width: min(440px, 100%); }
+.plate-box { display: flex; align-items: stretch; min-height: 76px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-m); background: var(--white); overflow: hidden; }
+.plate-box:focus-within { outline: 3px solid var(--blue-500); outline-offset: 2px; }
+.plate-box[data-invalid='true'] { border-color: var(--red); background: #fdf3f3; }
+.plate-band { flex: none; width: 44px; display: grid; place-content: center; justify-items: center; gap: 4px; background: #003399; color: var(--white); font-family: var(--font-sign); font-weight: 700; font-size: 1.25rem; line-height: 1; }
+.plate-band i { width: 18px; height: 18px; border-radius: 50%; border: 2px dotted var(--amber); }
+.plate-input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0 16px; font-family: var(--font-sign); font-weight: 600; font-size: clamp(2rem, 4vw, 2.5rem); letter-spacing: 0.1em; text-transform: uppercase; text-align: center; color: var(--blue-900); }
+.plate-input:focus-visible { outline: none; }
+.plate-input::placeholder { color: #9aa3ae; }
+
+/* Carretera de estados (firma): fijada mientras el coche la recorre con el scroll. */
+.road-wrap { position: relative; height: 420vh; }
+.road-stage { position: sticky; top: 0; min-height: 100vh; min-height: 100dvh; display: grid; align-content: center; gap: clamp(32px, 6vh, 64px); padding: 96px 0 48px; overflow: hidden; }
+.road-grid { display: grid; gap: 32px; align-items: center; }
+.road-grid .sec-head { margin-bottom: 0; }
+@media (min-width: 960px) { .road-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 72px; } }
+.road-phone { justify-self: stretch; }
+.road-phone .says { min-height: 4.2em; }
+.road { position: relative; height: 150px; margin-inline: 66px; }
+.road-car-wrap { position: absolute; left: -66px; top: 0; width: 132px; will-change: transform; }
+.road-car { width: 132px; height: auto; overflow: visible; }
+.road-car .body { fill: var(--white); stroke: var(--white); stroke-width: 1.5; stroke-linejoin: round; }
+.road-car .glass { fill: var(--blue-100); }
+.road-car .wheel { transform-box: fill-box; transform-origin: center; }
+.road-car .tyre { fill: var(--blue-900); stroke: var(--white); stroke-width: 1.5; }
+.road-car .rim { fill: var(--blue-900); stroke: var(--amber); stroke-width: 1.5; }
+.road-car .spoke { stroke: var(--white); stroke-width: 1.2; stroke-linecap: round; }
+.road-line { position: absolute; left: 0; right: 0; top: 52px; height: 4px; border-radius: 2px; background: rgba(188, 196, 206, 0.28); overflow: hidden; }
+.road-line b { display: block; height: 100%; background: var(--amber); transform-origin: left; transform: scaleX(0); }
+.road-stops li { position: absolute; top: 46px; transform: translateX(-50%); display: grid; justify-items: center; gap: 10px; width: 120px; text-align: center; }
+.road-stops i { width: 16px; height: 16px; border-radius: 50%; border: var(--stroke) solid var(--soft, #c9d6ee); background: var(--blue-900); transition: background 0.25s, border-color 0.25s; }
+.road-stops li[data-on='true'] i { background: var(--amber); border-color: var(--amber); }
+.road-stops span { font-size: 0.875rem; font-weight: 600; color: var(--soft, #c9d6ee); line-height: 1.25; transition: color 0.25s; }
+.road-stops li[data-now='true'] span { color: var(--white); }
+@media (max-width: 899px) {
+  .road-stops span { display: none; }
+  .road-stops li[data-now='true'] span { display: block; width: 150px; }
+  .road-stops li:first-child[data-now='true'] span { transform: translateX(40px); }
+  .road-stops li:last-child[data-now='true'] span { transform: translateX(-40px); }
+  .road { margin-inline: 40px; height: 130px; }
+  .road-car-wrap { left: -48px; width: 96px; }
+  .road-car { width: 96px; }
+  .road-line { top: 38px; }
+  .road-stops li { top: 32px; }
+  .road-phone .says { min-height: 5.2em; }
+}
+.road-list { display: grid; gap: 12px; }
+.road-list li { display: grid; gap: 8px; padding: 16px 0; border-bottom: var(--stroke) solid rgba(188, 196, 206, 0.3); }
+
+/* Servicios: rejilla de celdas con trazo, sin sombras. */
+.svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); border-top: var(--stroke) solid var(--blue-900); border-left: var(--stroke) solid var(--blue-900); }
+.svc-grid li { display: grid; align-content: start; gap: 10px; padding: 28px 24px 32px; border-right: var(--stroke) solid var(--blue-900); border-bottom: var(--stroke) solid var(--blue-900); background: var(--white); transition: background 0.2s; }
+.svc-grid svg { width: 32px; height: 32px; fill: none; stroke: var(--blue-500); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 8px; }
+.svc-grid h3 { font-family: var(--font-sign); font-weight: 600; text-transform: uppercase; font-size: 1.5rem; line-height: 1.05; color: var(--blue-900); }
+.svc-grid p { color: var(--mute); }
+@media (hover: hover) and (pointer: fine) { .svc-grid li:hover { background: var(--blue-100); } }
+
+/* Horario y contacto */
+.info-card { border: var(--stroke) solid var(--blue-900); border-radius: var(--r-l); background: var(--white); padding: 24px; display: grid; gap: 20px; }
+.info-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.info-head h3 { font-family: var(--font-sign); font-weight: 600; text-transform: uppercase; font-size: 1.5rem; color: var(--blue-900); }
+.hours, .contact-list { display: grid; }
+.hours div, .contact-list div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 14px 0; border-bottom: var(--stroke) solid var(--grid); }
+.hours div:last-child, .contact-list div:last-child { border-bottom: 0; }
+.hours dt, .contact-list dt { color: var(--mute); }
+.hours dd { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.contact-list div { grid-template-columns: 1fr; }
+.contact-list dd { font-size: 1.125rem; font-weight: 600; }
+.missing { display: inline-block; font-family: var(--font-sign); font-weight: 600; letter-spacing: 0.06em; font-size: 0.9375rem; padding: 0 8px; border: var(--stroke) dashed var(--amber); border-radius: var(--r-s); color: var(--ink); background: #fef5e3; }
+
+/* Preguntas frecuentes */
+.faq { border-top: var(--stroke) solid var(--blue-900); }
+.faq details { border-bottom: var(--stroke) solid var(--blue-900); }
+.faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: var(--tap); padding: 16px 0; cursor: pointer; font-weight: 650; font-size: 1.125rem; color: var(--blue-900); list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-s); font-family: var(--font-sign); font-size: 1.375rem; transition: transform 0.25s var(--ease); }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding: 0 48px 20px 0; color: var(--mute); max-width: 62ch; }
+@media (hover: hover) and (pointer: fine) { .faq summary:hover { color: var(--blue-500); } }
+
+@media (max-width: 899px) {
+  .th-hero { grid-template-columns: 1fr; grid-template-rows: auto minmax(300px, 46vh); }
+  .th-hero-copy { padding: 96px 24px 24px; gap: 16px; max-width: none; }
+  .th-hero-scene { margin: 0; border-top: var(--stroke) solid var(--grid); }
+  .th-scene-bar { right: 16px; bottom: 16px; }
+  .road-wrap { height: 380vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq summary::after, .svc-grid li, .road-stops i, .road-stops span { transition: none; }
+}

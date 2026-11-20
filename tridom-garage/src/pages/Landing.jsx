@@ -45,7 +45,7 @@ function Header() {
   const go = (id) => (e) => { e.preventDefault(); scrollToId(id); };
   return (
     <header className="site-header" ref={ref} data-tone="light">
-      <Wordmark />
+      <Wordmark to="/producto" />
       <nav className="site-nav" aria-label={t('nav.menu')}>
         <a href="#how" onClick={go('how')}>{t('nav.how')}</a>
         <Link to="/panel">{t('nav.tryDemo')}</Link>

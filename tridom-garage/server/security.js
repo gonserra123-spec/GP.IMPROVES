@@ -8,6 +8,7 @@ export const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self'",
+  "frame-src https://www.google.com", // mapa de la web del taller, solo tras pulsar «Cargar mapa»
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-ancestors 'none'",
