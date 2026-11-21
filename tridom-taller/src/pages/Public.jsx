@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Btn, Plate, StateChip, Wordmark } from '../components.jsx';
 import { get, post } from '../lib/api.js';
+import TrackScene from './TrackScene.jsx';
 
 // Baja de avisos por correo: un enlace en cada correo, sin iniciar sesión.
 export function Unsub({ token }) {
@@ -59,6 +60,7 @@ export function Track({ token }) {
     <main className="page track">
       <p className="track-shop">{info.workshop}</p>
       <section className="card track-card" data-state={info.state} aria-live="polite">
+        <TrackScene key={info.state} state={info.state} />
         <StateChip state={info.state} />
         <h1>{HEADLINE[info.state]}</h1>
         <p>{SUBLINE[info.state]}</p>
