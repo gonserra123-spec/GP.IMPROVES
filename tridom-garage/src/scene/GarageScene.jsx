@@ -32,6 +32,7 @@ function Bridge({ template, name, brandColor, mode, interactive, onSelect, onRea
     let alive = true; let engine = null; let unsub = () => {};
     fontsReady().then(() => {
       if (!alive) return;
+      try {
       engine = createEngine({ template, name, brandColor, lang, mode, reduced: reducedMotion });
       const rig = createRig(get().camera, engine.bounds, template.building.wallH);
       rig.setSize(size.width, size.height); rig.fit(true);
@@ -62,7 +63,12 @@ function Bridge({ template, name, brandColor, mode, interactive, onSelect, onRea
       setBuilt((n) => n + 1);
       onReady?.({ engine, rig });
       invalidate();
-    });
+      } catch (e) {
+        console.error('Escena 3D:', e);
+        window.__garageError = String(e?.stack || e);
+        useScene.getState().setFallback(true);
+      }
+    }).catch((e) => { console.error('Escena 3D:', e); window.__garageError = String(e?.stack || e); useScene.getState().setFallback(true); });
     return () => {
       alive = false; unsub();
       if (engine) engine.dispose();

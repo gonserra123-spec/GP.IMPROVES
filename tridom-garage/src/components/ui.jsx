@@ -108,6 +108,11 @@ export function SceneHost({ listVehicles, onSelect, selectedId, ...props }) {
   useEffect(() => {
     try { const c = document.createElement('canvas'); if (!(c.getContext('webgl2') || c.getContext('webgl'))) { setGl(false); useScene.getState().setFallback(true); } } catch { setGl(false); useScene.getState().setFallback(true); }
   }, []);
+  useEffect(() => {
+    if (ready || fallback) return undefined;
+    const id = setTimeout(() => useScene.getState().setFallback(true), 15000);
+    return () => clearTimeout(id);
+  }, [ready, fallback]);
   if (fallback || !gl) {
     return (
       <div className="scene-fallback" style={{ padding: 16, display: 'grid', gap: 12 }}>
