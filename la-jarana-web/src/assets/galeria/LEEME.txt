@@ -1,0 +1,1 @@
+Suelta aquí las fotos de ambiente (.jpg/.jpeg/.png/.webp). La galería las detecta sola, en orden alfabético.

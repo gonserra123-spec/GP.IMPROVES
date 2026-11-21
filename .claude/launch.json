@@ -78,6 +78,35 @@
         "--strictPort"
       ],
       "port": 4200
+    },
+    {
+      "name": "la-jarana",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "la-jarana-web/node_modules/vite/bin/vite.js",
+        "la-jarana-web",
+        "--config",
+        "la-jarana-web/vite.config.js",
+        "--port",
+        "5210",
+        "--strictPort"
+      ],
+      "port": 5210
+    },
+    {
+      "name": "la-jarana-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "la-jarana-web/node_modules/vite/bin/vite.js",
+        "preview",
+        "la-jarana-web",
+        "--config",
+        "la-jarana-web/vite.config.js",
+        "--port",
+        "4210",
+        "--strictPort"
+      ],
+      "port": 4210
     }
   ]
 }

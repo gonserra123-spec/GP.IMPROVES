@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+# Fuente comercial: no se publica en el repo (se carga sola si está en local)
+src/assets/fonts/*.otf
+src/assets/fonts/*.ttf
+src/assets/fonts/*.woff
+src/assets/fonts/*.woff2

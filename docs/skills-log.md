@@ -316,3 +316,43 @@ Verificación Playwright: logo visible en el fotograma 0. Tras el primer paso de
 **Seguridad**: 6 hallazgos de security-audit en modo guía corregidos (sesiones sin tope, reinicio de demo tras proxy, tope diario de verificación del teléfono, entre otros). **Codex**: no pudo leer el repo y revisó diez ficheros pegados; 14 puntos, 2 altos en la parte de Supabase, corregidos sin poder probarlos (no hay credenciales).
 
 Detalle completo, verificación y pendientes en `tridom-garage/docs/skills-log.md`.
+
+## La Jarana · peña de Rubielos de Mora (proyecto personal, no cliente) — 2026-11-16
+- **Fingerprint**: editorial/gamberro-institucional (comunicado oficial con humor). Azul cielo `#74ACE5` + blanco; tinta `#1B2733` solo para texto. Titulares en Mencken Std Head Narrow (aún sin archivo → Instrument Serif como sustituto, slot en `src/assets/fonts`), cuerpo Inter. React + Vite + Motion + three.
+- **Skills**: security-audit (modo guía), impeccable y review-animations (criterios aplicados como checklist manual; `review-animations` no instalada). `redesign-existing-projects` no aplica.
+- **Nivel 3 de movimiento**: BASE + hero 3D + **M1-adaptado** (vaso 360° que gira solo, con el scroll y al arrastrar) + **M14** (cursor doble anillo + toro) + **M16** (comunicados en historias) + **M18** (titular fantasma con parallax por palabra). Extra: sello estampado en tarjetas. Firma: logo «hecho pedazos» que se recompone + parallax de burbujas ligado al scroll.
+- **Excepciones del encargo**: sin formulario (enlace a Instagram/WhatsApp) y solo ES.
+- **Seguridad**: CSP/XFO/nosniff/HSTS/Referrer/Permissions en `vercel.json`, `public/_headers` y `vite preview`; sin claves; enlaces externos validados (https) con `rel=noopener noreferrer`; `npm audit` 0 vulnerabilidades. Hallazgos security-audit (guía): cliente/DOM sin sinks (`dangerouslySetInnerHTML`, `innerHTML` ausentes); cadena de suministro: 5 dependencias directas fijadas por lockfile, fuentes self-hosted (sin CDN). Pendiente en despliegue: WAF/SSL Full (strict)/2FA si hay Cloudflare.
+- **Decisiones**: logo con alfa reconstruido desde el SMask del PDF; tinte por máscara CSS; plaqueta azul solo sobre secciones blancas. Texto blanco sobre azul no cumple contraste → todo el texto va en tinta.
+
+### La Jarana v2 (cambios del cliente) — 2026-11-16
+- **Vaso 3D**: sustituido por el módulo entregado `vaso3d.js` con la textura real del diseño 360°; el bucle pasa al ticker de Motion. **Bug de scroll**: el hero anclado (320svh) giraba el vaso con el scroll y a la vez con el giro automático, y al soltar el pin saltaba. Ahora el hero no se ancla, el scroll solo mueve envoltorios y la rotación tiene un único dueño (el módulo). Verificado: avance máximo de 40 px por paso de 40 px (sin saltos), también al volver arriba.
+- **Copy**: tono chulo/gamberro; fuera «peña de amigos», «asociación formal» y «unirte». Historia sin fechas ni datos inventados.
+- **Estructura**: Uniforme → hueco [FALTA ESCUDO RUBIELOS]; galería por categorías (Tardeos, Fiestas patronales, El Pajar, Merchandising en acción) con [FALTA FOTO]; merch clicable con modal (vaso abre el 3D; sudadera/peto [FALTA IMAGEN]); pegatinas que se pegan con rebote.
+- **CTA**: buzón con formulario (texto + adjunto, sin mínimo) + Instagram @lajarana_. Endpoint `api/envio.js` con validación server-side, límite 4 MB, rate limit, honeypot y origen; Resend vía variables de entorno (email de destino [FALTA] → 503 controlado).
+- **Cursor**: tamaño fijo (38 px + toro 34×26), sin estados de hover; cursor del sistema oculto en pointer:fine.
+- **Conflicto resuelto**: el chat pedía formulario con email; el TXT del zip decía «sin formulario ni email». Gana el chat (usuario); sin email el formulario queda listo pero desactivado en servidor.
+
+### La Jarana v3 (nuevas funciones) — 2026-11-16
+- **Vaso que se llena**: sección anclada de 380svh; el scroll solo llama a `setFill()` del módulo entregado (chorro, burbujas, espuma que rebosa); la rotación sigue siendo del módulo. Reduced motion → lleno al 100%.
+- **Lluvia de pegatinas**: botón fijo + easter egg "JARANA"; 40 piezas (12 sin giro en reduced motion), `pointer-events: none`.
+- **Crea tu comunicado**: plantillas locales siempre disponibles + Worker de Cloudflare con Gemini (clave solo como secreto del Worker, CORS por lista, 5/min con Rate Limiting binding, 30/día con KV opcional, entrada y salida validadas). Descarga PNG story 1080×1920 y A4 1240×1754 dibujados en canvas.
+- **Contador patronales**: próximo 14-sep 00:00 Europe/Madrid (resuelve horario de verano); 14 y 15 → "¡Estamos en patronales!"; flip con spring en el ticker único.
+- **Mapa modo GTA**: MapLibre 6 (OpenFreeMap liberty + terrarium), cámara zoom 12,3→18,4 / pitch 0→62 / giro −35→28 ligada al scroll; puerta → "Bienvenido al pajar" con parallax por capas recortadas; interacción solo con "Explorar el mapa". MapLibre 6 necesita `setWorkerUrl()` al empaquetar.
+- **Bug encontrado**: `overflow-x: hidden` en body + `overflow-x: clip` en html convertía el body en contenedor de scroll y rompía todos los `position: sticky`. Se quita el del body.
+- **CTA**: vuelve a ser solo Instagram (el TXT del zip, ahora pegado por el usuario, pide "sin formulario ni email"); se elimina el endpoint `api/envio.js`.
+- **CSP**: añade tiles.openfreemap.org, s3.amazonaws.com, *.workers.dev y `worker-src blob:`.
+
+### La Jarana · revisión con Codex — 2026-11-16
+Codex no podía leer el repo desde su sandbox; se le pasó el código por stdin (`codex exec --sandbox read-only`). 7 hallazgos, todos confirmados y corregidos:
+1. Worker: CORS no es autenticación → tope global diario (`GLOBAL_DAILY_MAX`, KV) además de los límites por IP. 2. Cuerpo leído con límite real de 2 KB (no fiarse de Content-Length). 3. Tema tratado como dato en el prompt + filtro de salida (si salta, la web usa plantillas). 4. Carrera en el contador KV: documentada como tope aproximado (KV no es atómico). 5. `toBlob()` nulo → aviso en vez de excepción. 6. Canvas: corte de palabras largas, puntos ≤220 y letra que se reduce hasta caber sin pisar sello ni pie. 7. Mapa: si el estilo no carga (error o 15 s) → foto de respaldo.
+Sin fallos en el contador (DST), en el ciclo de vida 3D/MapLibre con StrictMode ni en la CSP.
+
+### La Jarana · últimos ajustes — 2026-11-16
+- Logo pequeño: silueta vectorizada (`public/img/logo-linea.svg`, potrace, usado una vez y desinstalado) teñida en tinta #1B2733, aparece desde el primer scroll. Sustituye a la regla de logo adaptativo con plaqueta (petición del cliente).
+- Nav: píldora blanca .72 + blur(12px) + borde rgba(27,39,51,.12) + sombra; enlace activo y hover en #74ACE5; menú hamburguesa en móvil; botones ≥44 px.
+- Historia: sección anclada, frase a frase (70svh de tramo + 50svh de pausa) con scroll-snap proximity al final de cada frase; reduced motion → texto entero sin anclaje.
+- Pajar: fuera la puerta; zoom + fundido del mapa a "Bienvenido al pajar" con UNA imagen (cover, scale 1.1, ±2,5 %). La foto duplicada venía de la imagen de fondo + capas recortadas.
+- Generador: documento en flujo (crece), overflow-wrap anywhere + hyphens, clamp(); silueta SVG en tinta en pantalla y en la descarga; sello vectorial.
+- Instagram: @_lajarana en toda la web.
+- Móvil: scrollWidth = clientWidth en 360/390/1440 (overflow-x: clip en secciones: los sellos y pegatinas entraban a escala >1).

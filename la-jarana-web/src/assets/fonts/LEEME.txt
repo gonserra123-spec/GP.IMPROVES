@@ -1,0 +1,3 @@
+Suelta aquí "Mencken Std Head Narrow" (.woff2/.otf/.ttf, nombre que empiece por Mencken).
+main.jsx lo detecta solo y lo usa en el eslogan y los titulares de impacto.
+Mientras no esté, se usa Instrument Serif como sustituto.
