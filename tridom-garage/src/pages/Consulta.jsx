@@ -6,6 +6,7 @@ import { useT, LangSwitch } from '../i18n/index.jsx';
 import { Btn, Field, Link, Plate, SceneHost, StateChip, Wordmark } from '../components/ui.jsx';
 import { getAdapter, NetworkError } from '../data/adapter.js';
 import { useScene } from '../scene/store.js';
+import { PLATE_HANDOFF, TALLER } from '../data/taller.js';
 
 const MINE = 'mine';
 
@@ -65,19 +66,28 @@ export default function Consulta({ code }) {
     return () => clearInterval(id);
   }, [result?.token]);
 
-  const submit = async (e) => {
-    e.preventDefault();
-    const pe = plateError(plate, { allowGeneric: true });
+  const lookup = async (value) => {
+    const pe = plateError(value, { allowGeneric: true });
     if (pe) { setError(pe); return; }
     setBusy(true); setError(null);
     try {
       const api = await getAdapter();
-      const r = await api.publicLookup({ code, plate: normalizePlate(plate), website });
+      const r = await api.publicLookup({ code, plate: normalizePlate(value), website });
       if (r.ok) { setResult({ token: r.token, vehicle: r.vehicle, others: r.others }); setCost(null); setLast4(''); setVerifyErr(null); requestAnimationFrame(() => heading.current?.focus()); }
       else setError(r.status === 429 ? 'rate_limited' : 'not_available');
     } catch (err) { setError(err instanceof NetworkError ? 'network' : 'not_available'); }
     setBusy(false);
   };
+  const submit = (e) => { e.preventDefault(); lookup(plate); };
+
+  // Entrada desde «¿Cómo va tu coche?» de la web: la matrícula llega por sessionStorage y se consulta sola.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('c')) return;
+    let handed = null;
+    try { handed = sessionStorage.getItem(PLATE_HANDOFF); sessionStorage.removeItem(PLATE_HANDOFF); } catch { /* sin almacenamiento */ }
+    if (handed) { setPlate(handed); lookup(handed); }
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const verify = async (e) => {
     e.preventDefault();
     if (!/^\d{4}$/.test(last4)) { setVerifyErr('last4_format'); return; }
@@ -94,7 +104,7 @@ export default function Consulta({ code }) {
   return (
     <div className="consulta">
       <header className="app-bar">
-        <Wordmark />
+        {code === TALLER.code ? <Wordmark a="Tridom" b="Garage" /> : <Wordmark />}
         {workshop && <span className="who"><strong>{workshop.name}</strong></span>}
         {workshop?.code === 'DEMO01' && <span className="demo-tag">{t('common.demo')}</span>}
         <span className="grow" />

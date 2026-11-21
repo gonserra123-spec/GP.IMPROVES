@@ -1,0 +1,96 @@
+/* ---------- Web del taller: contacto, visita, precios, reseñas, fotos. Tokens de app.css y taller.css. ---------- */
+
+/* Contacto siempre a la vista: franja fija arriba y, en el móvil, botones fijos abajo. */
+:root[data-site='taller'] { --topbar: 48px; }
+[data-site='taller'] .site-header { top: var(--topbar); }
+.top-bar { position: fixed; inset: 0 0 auto 0; z-index: calc(var(--z-header) + 1); height: var(--topbar, 48px); display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding: 0 clamp(16px, 3vw, 32px); background: var(--blue-900); color: var(--white); font-size: 0.9375rem; }
+.top-bar .open-pill { margin-right: auto; }
+.open-pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--soft, #c9d6ee); white-space: nowrap; }
+.open-pill::before { content: ''; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--soft, #c9d6ee); }
+.open-pill[data-open='true'] { color: var(--white); }
+.open-pill[data-open='true']::before { background: var(--green); }
+.contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.act { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: var(--r-m); border: var(--stroke) solid currentColor; color: inherit; font-weight: 650; text-decoration: none; white-space: nowrap; transition: transform 0.16s var(--ease), background 0.2s; }
+.act svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.act:active { transform: scale(0.97); }
+.act[aria-disabled='true'] { cursor: default; }
+.act--call:not([aria-disabled]) { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+.top-bar .missing { font-size: 0.8125rem; }
+.top-bar .act--car { background: var(--white); border-color: var(--white); color: var(--blue-900); }
+.contact-actions--hero { gap: 10px; }
+.contact-actions--hero .act { min-height: 48px; padding: 0 16px; color: var(--blue-900); border-color: var(--blue-900); }
+.contact-actions--hero .act--call:not([aria-disabled]) { color: var(--ink); border-color: var(--amber); }
+.hero-talk { display: grid; gap: 10px; padding-top: 18px; border-top: var(--stroke) solid var(--grid); }
+.mini-title { font-weight: 650; font-size: 1rem; color: var(--blue-900); margin-bottom: 10px; }
+.hero-talk .mini-title { margin: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .top-bar .act:not([aria-disabled]):hover { background: rgba(255, 255, 255, 0.12); }
+  .contact-actions--hero .act:not([aria-disabled]):hover { background: var(--blue-100); }
+  .act--call:not([aria-disabled]):hover { background: #ffb840; }
+  .top-bar .act--car:hover { background: var(--blue-100); }
+}
+@media (max-width: 899px) {
+  .top-bar { gap: 8px; justify-content: flex-end; padding: 0 12px; }
+  .top-bar .open-pill { display: none; }
+  .top-bar .contact-actions { flex-wrap: nowrap; gap: 6px; }
+  .top-bar .act { min-height: 34px; padding: 0 10px; font-size: 0.875rem; }
+  .top-bar .act svg { width: 16px; height: 16px; }
+  .th-hero-copy { padding-top: calc(96px + var(--topbar, 0px)); }
+}
+@media (min-width: 900px) { .th-hero-copy { padding-top: calc(112px + var(--topbar, 0px)); } }
+
+/* Dónde estamos y horario */
+.visit-grid { display: grid; gap: 24px; }
+@media (min-width: 960px) { .visit-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: stretch; } }
+.map-card { position: relative; min-height: 360px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-l); overflow: hidden; background: var(--white); }
+.map-card iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.map-placeholder { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; background-color: var(--white); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 32px 32px; }
+.map-placeholder svg { width: 44px; height: 44px; fill: var(--white); stroke: var(--blue-900); stroke-width: 1.6; stroke-linejoin: round; }
+.map-placeholder .hint { max-width: 40ch; background: var(--white); padding: 4px 8px; border-radius: var(--r-s); }
+.hours div[data-today='true'] { background: var(--blue-100); margin-inline: -12px; padding-inline: 12px; border-radius: var(--r-s); }
+.hours div[data-today='true'] dt, .hours div[data-today='true'] dd { color: var(--blue-900); font-weight: 650; }
+.today-tag { margin-left: 8px; font-size: 0.75rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: var(--r-s); background: var(--blue-900); color: var(--white); }
+.hours-notes { display: grid; gap: 6px; }
+.hours-notes li { padding-left: 18px; position: relative; color: var(--ink); font-weight: 600; }
+.hours-notes li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 8px; height: 8px; border-radius: 2px; background: var(--amber); }
+.btn[aria-disabled='true'] { pointer-events: none; opacity: 0.55; }
+
+/* Servicios y precios */
+.svc-grid li { grid-template-rows: auto auto 1fr auto auto; }
+.svc-price { margin-top: 4px; font-family: var(--font-sign); font-weight: 600; font-size: 1.375rem; color: var(--blue-900); }
+.svc-price .missing { font-size: 0.875rem; }
+.svc-book { font-weight: 650; font-size: 0.9375rem; color: var(--blue-700); text-decoration: none; }
+
+/* Presupuesto, pago, marcas y quiénes somos */
+.quote-list { display: grid; gap: 24px; align-content: start; }
+.quote-list > p { color: var(--mute); font-size: 1.0625rem; max-width: 60ch; }
+.quote-list .quote-main { font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 650; color: var(--blue-900); }
+.tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-list li { padding: 6px 14px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-m); background: var(--white); font-weight: 600; color: var(--blue-900); }
+.missing-block { padding: 20px; border: var(--stroke) dashed var(--amber); border-radius: var(--r-l); background: #fef5e3; color: var(--ink); max-width: 70ch; }
+
+/* Reseñas */
+.reviews-head { align-items: end; }
+@media (min-width: 900px) { .reviews-head { grid-template-columns: 1fr auto; } }
+.rating-big { display: flex; align-items: center; gap: 16px; }
+.rating-big strong { font-family: var(--font-sign); font-weight: 700; font-size: 4.5rem; line-height: 0.9; color: var(--blue-900); }
+.rating-big div { display: grid; gap: 4px; color: var(--mute); }
+.stars { display: inline-flex; gap: 2px; }
+.stars svg { width: 20px; height: 20px; fill: var(--grid); stroke: var(--amber); stroke-width: 1.4; stroke-linejoin: round; }
+.stars svg[data-on='true'] { fill: var(--amber); }
+.stars svg[data-half='true'] { fill: #fbd38d; }
+.review-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.review-grid li { display: grid; align-content: start; gap: 12px; padding: 24px; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-l); background: var(--white); }
+.review-grid blockquote { margin: 0; color: var(--ink); }
+
+/* Fotos */
+.photo-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.photo-grid li { aspect-ratio: 4 / 3; border: var(--stroke) solid var(--blue-900); border-radius: var(--r-l); overflow: hidden; background: var(--white); }
+.photo-grid img { width: 100%; height: 100%; object-fit: cover; }
+.photo-missing { height: 100%; display: grid; place-items: center; padding: 16px; background-image: linear-gradient(135deg, transparent 49.4%, var(--grid) 49.5%, var(--grid) 50.5%, transparent 50.6%), linear-gradient(45deg, transparent 49.4%, var(--grid) 49.5%, var(--grid) 50.5%, transparent 50.6%); }
+@media (max-width: 520px) { .hours div { grid-template-columns: 1fr; } .hours dd { text-align: left; } }
+
+/* La escena no sale de su caja aunque el lienzo tarde un fotograma en ajustarse al cambiar el alto
+   (barra del navegador móvil, giro de pantalla); la cinta queda siempre por encima. */
+.th-hero-scene { overflow: hidden; contain: paint; }
+[data-site='taller'] .ribbon { position: relative; z-index: 3; }

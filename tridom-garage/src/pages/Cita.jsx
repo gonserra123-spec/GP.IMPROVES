@@ -7,6 +7,7 @@ import { normalizePlate } from '../../shared/plates.js';
 import { useT, LangSwitch } from '../i18n/index.jsx';
 import { Btn, Field, Link, Plate, Wordmark } from '../components/ui.jsx';
 import { getAdapter, NetworkError } from '../data/adapter.js';
+import { TALLER } from '../data/taller.js';
 
 const EMPTY = { plate: '', email: '', phone: '', date: '', slot: '', reason: '', modelId: '', make: '', model: '', bodyType: '', consent: false, website: '' };
 
@@ -71,7 +72,7 @@ export default function Cita({ code }) {
   return (
     <main className="cita">
       <div className="cita-card">
-        <div className="login-top"><Wordmark /><LangSwitch /></div>
+        <div className="login-top">{code === TALLER.code ? <Wordmark a="Tridom" b="Garage" /> : <Wordmark />}<LangSwitch /></div>
         <div className="cita-head">
           <p className="hint">{workshop.name}</p>
           <h1>{t('cita.title')}</h1>
