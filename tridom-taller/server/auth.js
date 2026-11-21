@@ -48,9 +48,14 @@ export const adminKeyOk = (k) => !!ADMIN_KEY && typeof k === 'string' && safeEq(
 // ---------- Sesión: cookie firmada ----------
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const sign = (p) => createHmac('sha256', SECRET).update(`session:${p}`).digest('base64url');
-const TTL = { mechanic: 12 * 3600_000, owner: 12 * 3600_000, admin: 2 * 3600_000 };
-export function makeSession({ w, r, kv }) {
-  const p = b64({ w, r, kv, exp: Date.now() + TTL[r], sid: randomUUID() });
+// El mecánico y el dueño siguen dentro mientras usen la app: cada día de uso renueva el plazo.
+// Solo piden la clave de nuevo tras 90 / 30 días sin abrirla, o a los 12 meses desde que entraron. La administración sigue siendo corta.
+const DAY = 86_400_000;
+export const TTL = { mechanic: 90 * DAY, owner: 30 * DAY, admin: 2 * 3600_000 };
+const MAX_LIFE = 365 * DAY;
+export function makeSession({ w, r, kv, iat }) {
+  const now = Date.now();
+  const p = b64({ w, r, kv, iat: iat || now, exp: now + TTL[r], sid: randomUUID() });
   return `${p}.${sign(p)}`;
 }
 export function readSession(req) {
@@ -59,16 +64,18 @@ export function readSession(req) {
   const [p, s] = m[1].split('.');
   if (!p || !s || !safeEq(sign(p), s)) return null;
   let d; try { d = JSON.parse(Buffer.from(p, 'base64url').toString('utf8')); } catch { return null; }
-  if (!d || d.exp < Date.now()) return null;
+  if (!d || d.exp < Date.now() || (d.iat && Date.now() - d.iat > MAX_LIFE)) return null;
   if (d.r === 'admin') return d;
   const w = getWorkshop(d.w);
   // Taller pausado o clave cambiada: la sesión deja de valer al instante.
   if (!w || w.status !== 'active' || (d.r === 'owner' ? w.ownerVer : w.mechVer) !== d.kv) return null;
   return { ...d, workshopName: w.name };
 }
-export function cookie(value, { secure, clear = false } = {}) {
-  return `tt_session=${clear ? '' : value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${clear ? 0 : 12 * 3600}${secure || PROD ? '; Secure' : ''}`;
+export function cookie(value, { secure, clear = false, role = 'admin' } = {}) {
+  return `tt_session=${clear ? '' : value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${clear ? 0 : Math.floor(TTL[role] / 1000)}${secure || PROD ? '; Secure' : ''}`;
 }
+// Si la sesión tiene más de un día, se emite una nueva con el plazo completo (el uso diario nunca la deja caducar).
+export const needsRenewal = (s) => s.r !== 'admin' && s.exp - Date.now() < TTL[s.r] - DAY;
 
 // ---------- Límite de intentos ----------
 export function createLimiter({ windowMs, max, lockMs = 0 }) {

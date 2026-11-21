@@ -79,6 +79,10 @@ export function validateSettings(input) {
   for (const k of ['replyTo', 'ownerEmail']) if (input[k] !== undefined && input[k] !== '' && !isEmail(normEmail(input[k]))) errors[k] = 'email_format';
   if (input.summaryHour !== undefined && !(Number.isInteger(input.summaryHour) && input.summaryHour >= 0 && input.summaryHour <= 23)) errors.summaryHour = 'invalid';
   if (input.summaryOn !== undefined && typeof input.summaryOn !== 'boolean') errors.summaryOn = 'invalid';
+  if (input.weeklyOn !== undefined && typeof input.weeklyOn !== 'boolean') errors.weeklyOn = 'invalid';
+  if (input.weeklyDay !== undefined && !(Number.isInteger(input.weeklyDay) && input.weeklyDay >= 1 && input.weeklyDay <= 7)) errors.weeklyDay = 'invalid';
+  if (input.weeklyHour !== undefined && !(Number.isInteger(input.weeklyHour) && input.weeklyHour >= 0 && input.weeklyHour <= 23)) errors.weeklyHour = 'invalid';
+  if (input.staleDays !== undefined && !(Number.isInteger(input.staleDays) && input.staleDays >= 2 && input.staleDays <= 60)) errors.staleDays = 'invalid';
   if (input.sheetId !== undefined && input.sheetId !== '' && !/^[A-Za-z0-9_-]{20,80}$/.test(input.sheetId)) errors.sheetId = 'invalid';
   if (input.templates !== undefined) { const v = validateTemplates(input.templates); if (!v.ok) errors.templates = v.errors; }
   return { ok: Object.keys(errors).length === 0, errors };

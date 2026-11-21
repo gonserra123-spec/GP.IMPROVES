@@ -223,6 +223,114 @@ test('seguimiento del cliente: el enlace del correo abre solo su coche y sigue l
   assert.equal((await call('GET', `/public/track/${mail.trackToken(s.id, gone.id)}`)).status, 404);
 });
 
+test('informe semanal: reparados, en curso, atascados y comparación; sale una vez por semana', async () => {
+  resetLimits(); await drain();
+  const weekly = await import('../server/weekly.js');
+  const s = await shop('Taller Semanal');
+  const db = workshopDb(s.id);
+  const ins = db.prepare('INSERT INTO visits (id, plate, email, make, model, state, eta, photo, received_at, in_progress_at, finished_at, created_by) VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?, ?, ?, ?)');
+  const add = (plate, model, state, rec, prog, fin) => ins.run(uuid(), plate, 'c@example.com', 'Seat', model, state, rec, prog, fin, 'mechanic');
+  add('1111BCD', 'Ibiza', 'finished', '2026-11-17T09:00:00Z', '2026-11-17T10:00:00Z', '2026-11-18T10:00:00Z'); // reparado esta semana
+  add('2222BCD', 'Leon', 'in_progress', '2026-11-18T09:00:00Z', '2026-11-19T09:00:00Z', null); // en curso
+  add('3333BCD', 'Arona', 'received', '2026-11-19T09:00:00Z', null, null); // sin empezar
+  add('4444BCD', 'Ateca', 'in_progress', '2026-11-05T09:00:00Z', '2026-11-06T09:00:00Z', null); // atascado: 15 días
+  add('5555BCD', 'Toledo', 'finished', '2026-11-10T09:00:00Z', '2026-11-10T10:00:00Z', '2026-11-11T09:00:00Z'); // semana pasada
+  const friday = new Date('2026-11-20T18:30:00Z'); // viernes 19:30 en Madrid
+  const { subject, body } = weekly.weeklyText(s.id, friday);
+  assert.match(subject, /Resumen de la semana · Taller Semanal/);
+  assert.match(body, /Coches que han entrado: 3 · semana pasada, hasta el mismo día: 1/);
+  assert.match(body, /Coches reparados \(finalizados\): 1 · semana pasada, hasta el mismo día: 1/);
+  assert.match(body, /REPARADOS ESTA SEMANA \(1\)\n- 1111 BCD/);
+  assert.match(body, /EN CURSO AHORA \(2\)/); assert.match(body, /EN EL TALLER, SIN EMPEZAR \(1\)\n- 3333 BCD/);
+  assert.match(body, /ATENCIÓN: LLEVAN 7 DÍAS O MÁS SIN TERMINAR \(1\)\n- 4444 BCD · Seat Ateca · entró el 05\/11 \(15 días\) · en curso/);
+  assert.equal(weekly.fmtDuration(150), '2 h 30 min'); assert.equal(weekly.fmtDuration(null), 'sin datos');
+  // Programación: el jueves no toca, el viernes tarde sí y solo una vez; la semana siguiente vuelve a salir.
+  setSettings(db, { ownerEmail: 'dueno@example.com' });
+  const n = () => db.prepare("SELECT COUNT(*) AS c FROM outbox WHERE kind = 'summary'").get().c;
+  weekly.runWeeklyReports(new Date('2026-11-19T12:00:00Z')); assert.equal(n(), 0);
+  weekly.runWeeklyReports(new Date('2026-11-20T17:30:00Z')); assert.equal(n(), 0); // 18:30 en Madrid: aún no son las 19
+  weekly.runWeeklyReports(friday); assert.equal(n(), 1);
+  weekly.runWeeklyReports(new Date('2026-11-20T18:45:00Z')); weekly.runWeeklyReports(new Date('2026-11-21T10:00:00Z')); assert.equal(n(), 1);
+  weekly.runWeeklyReports(new Date('2026-11-27T18:30:00Z')); assert.equal(n(), 2);
+  const row = db.prepare("SELECT to_email, body FROM outbox WHERE kind = 'summary' ORDER BY created_at LIMIT 1").get();
+  assert.equal(row.to_email, 'dueno@example.com'); assert.match(row.body, /REPARADOS ESTA SEMANA/);
+  // Una semana sin ningún movimiento no manda correo vacío.
+  const empty = await shop('Taller Vacio');
+  setSettings(workshopDb(empty.id), { ownerEmail: 'vacio@example.com' });
+  weekly.runWeeklyReports(friday);
+  assert.equal(workshopDb(empty.id).prepare("SELECT COUNT(*) AS c FROM outbox WHERE kind = 'summary'").get().c, 0);
+  // Ajustes, vista previa y envío manual: solo el dueño y con valores válidos.
+  assert.equal((await call('PATCH', '/owner/settings', { weeklyDay: 9 }, s.owner)).status, 422);
+  assert.equal((await call('PATCH', '/owner/settings', { staleDays: 1 }, s.owner)).status, 422);
+  const ok = await json(await call('PATCH', '/owner/settings', { weeklyDay: 6, weeklyHour: 10, staleDays: 10, weeklyOn: true }, s.owner));
+  assert.equal(ok.settings.weeklyDay, 6); assert.equal(ok.settings.staleDays, 10);
+  assert.equal((await call('GET', '/owner/weekly-preview', null, s.mech)).status, 403);
+  assert.equal((await call('GET', '/owner/weekly-preview', null, s.owner)).status, 200);
+  assert.equal((await call('POST', '/owner/weekly/send', {}, s.owner)).status, 200);
+  const noMail = await shop('Taller Sin Correo');
+  assert.equal((await call('POST', '/owner/weekly/send', {}, noMail.owner)).status, 422); // sin correo del dueño
+  await drain();
+});
+
+test('periodos: hoy, mensual y anual, cada uno comparado con el anterior hasta la misma altura', async () => {
+  resetLimits(); await drain();
+  const report = await import('../server/report.js');
+  const s = await shop('Taller Periodos');
+  const ins = workshopDb(s.id).prepare('INSERT INTO visits (id, plate, email, make, model, state, eta, photo, received_at, in_progress_at, finished_at, created_by) VALUES (?, ?, ?, NULL, NULL, ?, NULL, 0, ?, NULL, ?, ?)');
+  const add = (plate, rec, fin) => ins.run(uuid(), plate, 'p@example.com', fin ? 'finished' : 'received', rec, fin, 'mechanic');
+  add('1111BCD', '2026-11-20T09:00:00Z', '2026-11-20T11:00:00Z'); // hoy
+  add('2222BCD', '2026-11-10T09:00:00Z', '2026-11-12T09:00:00Z'); // este mes
+  add('3333BCD', '2026-10-05T09:00:00Z', '2026-10-06T09:00:00Z'); // mes anterior, antes del día 20
+  add('4444BCD', '2025-06-01T09:00:00Z', '2025-06-02T09:00:00Z'); // año anterior
+  add('5555BCD', '2026-03-01T09:00:00Z', null); // este año, sigue abierto
+  const now = new Date('2026-11-20T18:30:00Z');
+  const d = report.periodStats(s.id, 'day', now);
+  assert.deepEqual([d.cur.received, d.cur.finished, d.prev.received], [1, 1, 0]); assert.equal(d.cur.avgTotalMin, 120);
+  assert.deepEqual(d.buckets.map((b) => b.key), ['10', '12']); assert.match(d.label, /20 de noviembre de 2026/);
+  const m = report.periodStats(s.id, 'month', now);
+  assert.deepEqual([m.cur.received, m.cur.finished, m.prev.received, m.prev.finished], [2, 2, 1, 1]);
+  assert.deepEqual(m.buckets.map((b) => b.key), ['2026-11-10', '2026-11-12', '2026-11-20']); assert.equal(m.buckets.find((b) => b.key === '2026-11-10').received, 1); assert.equal(m.label, 'Noviembre de 2026');
+  const y = report.periodStats(s.id, 'year', now);
+  assert.deepEqual([y.cur.received, y.cur.finished, y.prev.received, y.prev.finished], [4, 3, 1, 1]);
+  assert.equal(y.buckets.length, 11); assert.equal(y.buckets.find((b) => b.key === '2026-03').received, 1); assert.equal(y.open.pending, 1);
+  assert.equal(report.periodStats(s.id, 'basura', now).period, 'day'); // periodo desconocido: cae en «hoy»
+  assert.equal((await call('GET', '/owner/period?p=month', null, s.owner)).status, 200);
+  assert.equal((await call('GET', '/owner/period?p=month', null, s.mech)).status, 403);
+});
+
+test('sesión larga: el mecánico no pierde la entrada, se renueva con el uso y se puede cortar', async () => {
+  resetLimits(); await drain();
+  const auth = await import('../server/auth.js');
+  const DAY = 86_400_000;
+  const s = await shop('Taller Sesion');
+  const raw = async (key) => (await call('POST', '/login', { key })).headers.get('set-cookie');
+  assert.match(await raw(s.mechanicKey), /Max-Age=7776000/); // 90 días
+  assert.match(await raw(s.ownerKey), /Max-Age=2592000/); // 30 días
+  const adm = await call('POST', '/admin/login', { key: 'admin-test-key' });
+  assert.match(adm.headers.get('set-cookie'), /Max-Age=7200/); // administración: 2 h
+  // Sesión recién hecha: no se vuelve a emitir.
+  assert.equal((await call('GET', '/visits', null, s.mech)).headers.get('set-cookie'), null);
+  const payload = JSON.parse(Buffer.from(s.mech.split('=')[1].split('.')[0], 'base64url').toString());
+  const at = (msAgo, extra = {}) => {
+    const real = Date.now; Date.now = () => real() - msAgo;
+    try { return 'tt_session=' + auth.makeSession({ w: payload.w, r: payload.r, kv: payload.kv, ...extra }); } finally { Date.now = real; }
+  };
+  // Con 2 días de antigüedad sigue valiendo y el servidor la renueva con el plazo completo.
+  const r = await call('GET', '/visits', null, at(2 * DAY));
+  assert.equal(r.status, 200);
+  const fresh = r.headers.get('set-cookie'); assert.match(fresh, /Max-Age=7776000/);
+  const np = JSON.parse(Buffer.from(fresh.split('=')[1].split(';')[0].split('.')[0], 'base64url').toString());
+  assert.ok(np.exp - Date.now() > 89 * DAY); assert.ok(Date.now() - np.iat > 1.9 * DAY); // plazo nuevo, fecha de origen conservada
+  // 89 días sin abrirla: sigue dentro. 91: pide la clave.
+  assert.equal((await call('GET', '/visits', null, at(89 * DAY))).status, 200);
+  assert.equal((await call('GET', '/visits', null, at(91 * DAY))).status, 401);
+  // Tope de un año desde el primer acceso, aunque la usen cada día.
+  assert.equal((await call('GET', '/visits', null, 'tt_session=' + auth.makeSession({ w: payload.w, r: payload.r, kv: payload.kv, iat: Date.now() - 366 * DAY }))).status, 401);
+  // El dueño puede cortarla en cualquier momento cambiando la clave del mecánico (móvil perdido).
+  assert.equal((await call('POST', '/owner/keys/mechanic', {}, s.owner)).status, 200);
+  assert.equal((await call('GET', '/visits', null, s.mech)).status, 401);
+});
+
 test('plantillas y ajustes: el dueño cambia el texto, teléfono y horario', async () => {
   resetLimits(); await drain();
   const s = await shop('Taller Plantilla');

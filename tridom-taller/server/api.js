@@ -4,13 +4,14 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { ADMIN_KEY, MAIL } from './config.js';
 import { getSettings, setSettings, workshopDb } from './db.js';
 import {
-  adminKeyOk, clientIp, cookie, createLimiter, createWorkshop, findByKey, getWorkshop, listWorkshops, makeSession, readSession,
+  adminKeyOk, clientIp, cookie, createLimiter, createWorkshop, findByKey, getWorkshop, listWorkshops, makeSession, needsRenewal, readSession,
   regenerateKey, renameWorkshop, setStatus,
 } from './auth.js';
 import { applyWebhookEvent, readTrackToken, readUnsubToken, recentMail, sendTest, unsubscribe, verifyWebhook } from './mail.js';
-import { stats } from './report.js';
+import { periodStats, stats } from './report.js';
 import { exportXlsx, serviceAccountEmail, sheetsConfigured, syncSheet } from './sheets.js';
 import { runDailySummaries, summaryText } from './summary.js';
+import { WEEKLY_DEFAULTS, sendWeeklyNow, weeklyText } from './weekly.js';
 import { counts, createVisit, listVisits, lookup, photoPath, setEta, setState, trackInfo, undo } from './visits.js';
 import { DEFAULT_TEMPLATES, cleanText, maskEmail, normEmail, validateSettings } from '../shared/rules.js';
 import { readFileSync } from 'node:fs';
@@ -65,6 +66,7 @@ function ownerSettings(wid) {
   const s = getSettings(workshopDb(wid));
   return {
     phone: s.phone || '', hours: s.hours || '', replyTo: s.replyTo || '', ownerEmail: s.ownerEmail || '', summaryOn: !!s.summaryOn, summaryHour: s.summaryHour ?? 19,
+    weeklyOn: s.weeklyOn ?? WEEKLY_DEFAULTS.weeklyOn, weeklyDay: s.weeklyDay ?? WEEKLY_DEFAULTS.weeklyDay, weeklyHour: s.weeklyHour ?? WEEKLY_DEFAULTS.weeklyHour, staleDays: s.staleDays ?? WEEKLY_DEFAULTS.staleDays,
     sheetId: s.sheetId || '', sheetStatus: s.sheetStatus || (s.sheetId ? 'pending' : 'off'), sheetSyncedAt: s.sheetSyncedAt || null, sheetError: s.sheetError || '',
     templates: { ...DEFAULT_TEMPLATES, ...(s.templates || {}) },
   };
@@ -83,7 +85,7 @@ async function login(req, res, body) {
     return send(res, found ? 403 : 401, { ok: false, error: found ? 'paused' : 'bad_key' });
   }
   limits.loginIp.clear(ip);
-  res.setHeader('Set-Cookie', cookie(makeSession({ w: found.workshop.id, r: found.role, kv: found.workshop.keyVer }), { secure: isSecure(req) }));
+  res.setHeader('Set-Cookie', cookie(makeSession({ w: found.workshop.id, r: found.role, kv: found.workshop.keyVer }), { secure: isSecure(req), role: found.role }));
   return send(res, 200, { ok: true, role: found.role, workshop: { name: found.workshop.name } });
 }
 async function adminLogin(req, res, body) {
@@ -139,9 +141,11 @@ async function shop(req, res, session, path, method, body) {
     if (ph) { const f = photoPath(wid, ph[1]); if (!f) return send(res, 404, { ok: false }); res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=600' }); return res.end(readFileSync(f)); }
     if (!owner) return send(res, 403, { ok: false, error: 'owner_only' });
     if (path === '/owner/stats') return send(res, 200, { ok: true, ...stats(wid) });
+    if (path === '/owner/period') return send(res, 200, { ok: true, ...periodStats(wid, new URL(req.url, 'http://x').searchParams.get('p')) });
     if (path === '/owner/mail') return send(res, 200, { ok: true, mail: recentMail(wid).map((m) => ({ ...m, toEmail: maskEmail(m.toEmail) })), provider: MAIL.provider });
     if (path === '/owner/settings') return send(res, 200, { ok: true, settings: ownerSettings(wid), service: { configured: sheetsConfigured(), email: serviceAccountEmail() }, mailProvider: MAIL.provider });
     if (path === '/owner/summary-preview') return send(res, 200, { ok: true, ...summaryText(wid) });
+    if (path === '/owner/weekly-preview') { const { subject, body: text } = weeklyText(wid); return send(res, 200, { ok: true, subject, body: text }); }
     if (path === '/owner/export.xlsx') {
       const buf = await exportXlsx(wid, session.workshopName);
       res.writeHead(200, { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="coches.xlsx"', 'Cache-Control': 'no-store' });
@@ -166,9 +170,13 @@ async function shop(req, res, session, path, method, body) {
     const patch = {};
     for (const k of ['phone', 'hours']) if (body[k] !== undefined) patch[k] = cleanText(body[k], 120);
     for (const k of ['replyTo', 'ownerEmail']) if (body[k] !== undefined) patch[k] = body[k] === '' ? '' : normEmail(body[k]);
-    for (const k of ['summaryOn', 'summaryHour', 'sheetId', 'templates']) if (body[k] !== undefined) patch[k] = body[k];
+    for (const k of ['summaryOn', 'summaryHour', 'weeklyOn', 'weeklyDay', 'weeklyHour', 'staleDays', 'sheetId', 'templates']) if (body[k] !== undefined) patch[k] = body[k];
     setSettings(workshopDb(wid), patch);
     return send(res, 200, { ok: true, settings: ownerSettings(wid) });
+  }
+  if (path === '/owner/weekly/send' && method === 'POST') {
+    if (!limits.mailTest.hit(`weekly:${wid}`).ok) return send(res, 429, { ok: false, error: 'rate_limited' });
+    return reply(res, sendWeeklyNow(wid));
   }
   if (path === '/owner/sheet/sync' && method === 'POST') return send(res, 200, { ok: true, ...(await syncSheet(wid)), settings: ownerSettings(wid) });
   if (path === '/owner/keys/mechanic' && method === 'POST') return send(res, 200, { ok: true, key: regenerateKey(wid, 'mechanic') });
@@ -215,6 +223,7 @@ export async function handleApi(req, res) {
     const session = readSession(req);
     if (path === '/session' && !session) return send(res, 200, { ok: false });
     if (!session) return send(res, 401, { ok: false, error: 'unauthorized' });
+    if (needsRenewal(session)) res.setHeader('Set-Cookie', cookie(makeSession(session), { secure: isSecure(req), role: session.r }));
     if (path === '/session' && session.r === 'admin') return send(res, 200, { ok: true, role: 'admin' });
     let body = {};
     if (method !== 'GET') {

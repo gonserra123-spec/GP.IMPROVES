@@ -5,6 +5,10 @@ import { NetworkError, errText, get, post, uuid } from './api.js';
 import { STATE_LABEL, etaDate } from '../../shared/rules.js';
 
 const QKEY = 'tt_queue_v1';
+const SKEY = 'tt_session_v1'; // quién era y qué taller: para abrir la app sin internet sin pedir la clave
+const VKEY = 'tt_visits_v1'; // última lista del servidor
+const readJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+const writeJson = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } };
 const load = () => { try { const q = JSON.parse(localStorage.getItem(QKEY) || '[]'); return Array.isArray(q) ? q : []; } catch { return []; } };
 const persist = (queue) => {
   try { localStorage.setItem(QKEY, JSON.stringify(queue)); } catch {
@@ -40,8 +44,8 @@ export const clearToast = () => set({ toast: null });
 export async function refresh() {
   try {
     const r = await get('/visits');
-    if (r.status === 401) { set({ status: 'login', role: null }); return; }
-    if (r.ok) set({ server: r.visits, online: true, loaded: true });
+    if (r.status === 401) { writeJson(SKEY, null); writeJson(VKEY, null); set({ status: 'login', role: null }); return; }
+    if (r.ok) { writeJson(VKEY, r.visits); set({ server: r.visits, online: true, loaded: true }); }
   } catch (e) { if (e instanceof NetworkError) set({ online: false }); }
 }
 
@@ -57,7 +61,7 @@ export async function flush() {
         else if (q.type === 'state') r = await post(`/visits/${q.visitId}/state`, { state: q.state, opId: q.opId });
         else r = await post(`/visits/${q.visitId}/eta`, { eta: q.eta });
       } catch (e) { if (e instanceof NetworkError) { set({ online: false }); return; } throw e; }
-      if (r.status === 401) { set({ status: 'login', role: null }); return; }
+      if (r.status === 401) { writeJson(SKEY, null); set({ status: 'login', role: null }); return; }
       const rest = state.queue.slice(1); persist(rest); set({ queue: rest, online: true });
       if (!r.ok) {
         // Un error de reglas (coche ya en el taller, paso imposible…) no se reintenta: se avisa y se descarta.
@@ -109,20 +113,30 @@ export async function undoLast() {
 export const dismissUndo = () => set({ undo: null });
 
 // ---------- Sesión ----------
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => { if (state.status === 'ready') { state.queue.length ? flush() : refresh(); } }, 10_000);
+  window.addEventListener('online', () => { set({ online: true }); flush(); });
+  window.addEventListener('offline', () => set({ online: false }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.status === 'ready') refresh(); });
+}
 export async function boot() {
   try {
     const r = await get('/session');
     if (r.ok && r.role && r.role !== 'admin') {
+      writeJson(SKEY, { role: r.role, workshop: r.workshop, undoSeconds: r.undoSeconds || 10 });
       set({ status: 'ready', role: r.role, workshop: r.workshop, undoSeconds: r.undoSeconds || 10 });
       await flush(); await refresh();
-      if (!pollTimer) {
-        pollTimer = setInterval(() => { if (state.status === 'ready') { state.queue.length ? flush() : refresh(); } }, 10_000);
-        window.addEventListener('online', () => { set({ online: true }); flush(); });
-        window.addEventListener('offline', () => set({ online: false }));
-        document.addEventListener('visibilitychange', () => { if (!document.hidden && state.status === 'ready') refresh(); });
-      }
-    } else set({ status: 'login' });
-  } catch (e) { set({ status: e instanceof NetworkError && state.role ? 'ready' : 'login', online: false }); }
+      startPolling();
+    } else { writeJson(SKEY, null); writeJson(VKEY, null); set({ status: 'login' }); }
+  } catch (e) {
+    // Sin internet al abrir: se entra con lo último guardado en el teléfono; los toques quedan en cola y salen al volver la red.
+    const saved = e instanceof NetworkError ? readJson(SKEY) : null;
+    if (saved?.role) {
+      set({ status: 'ready', role: saved.role, workshop: saved.workshop, undoSeconds: saved.undoSeconds || 10, server: readJson(VKEY) || [], loaded: true, online: false });
+      startPolling();
+    } else set({ status: 'login', online: false });
+  }
 }
 export async function login(key) {
   const r = await post('/login', { key });
@@ -131,5 +145,6 @@ export async function login(key) {
 }
 export async function logout() {
   try { await post('/logout', {}); } catch { /* sin red: la cookie caduca sola */ }
+  writeJson(SKEY, null); writeJson(VKEY, null);
   set({ status: 'login', role: null, workshop: null, server: [], undo: null });
 }

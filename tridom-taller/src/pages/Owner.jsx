@@ -41,6 +41,119 @@ export function Mail() {
   );
 }
 
+const PERIOD_BTNS = [['day', 'Hoy'], ['month', 'Mensual'], ['year', 'Anual']];
+
+// Diferencia con el periodo anterior: ▲ sube, ▼ baja, = igual.
+function Diff({ cur, prev, label, lowerIsBetter = false }) {
+  if (cur === null || prev === null || cur === undefined || prev === undefined) return <span className="diff">Sin datos para comparar</span>;
+  const d = cur - prev;
+  const good = d === 0 ? null : lowerIsBetter ? d < 0 : d > 0;
+  return <span className="diff" data-good={good}>{d === 0 ? '= igual que' : `${d > 0 ? '▲ +' : '▼ '}${lowerIsBetter ? fmtMin(Math.abs(d)).replace(/^/, d > 0 ? '' : '-') : d} vs`} {label}</span>;
+}
+
+// Lo que lleva el taller hoy, este mes o este año, con un botón para cada periodo.
+const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MONTH_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+// Gráfico de puntos del año: cuántos coches entraron y cuántos se finalizaron en cada mes.
+// Círculo azul = entradas, cuadrado verde = finalizados (la forma distingue las series aunque no se vean los colores).
+function YearChart({ buckets, year }) {
+  const [hover, setHover] = useState(null);
+  const by = new Map(buckets.map((b) => [Number(b.key.slice(5, 7)) - 1, b]));
+  const last = buckets.length ? Math.max(...by.keys()) : -1;
+  const vals = buckets.flatMap((b) => [b.received, b.finished]);
+  const max = Math.max(1, ...vals);
+  const step = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].find((v) => v >= max / 4) || 1000;
+  const top = step * Math.ceil(max / step);
+  const W = 720; const H = 300; const L = 40; const R = 24; const T = 28; const B = 38;
+  const x = (i) => L + ((W - L - R) * (i + 0.5)) / 12;
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
+  const pts = (k) => Array.from({ length: last + 1 }, (_, i) => [x(i), y(by.get(i)?.[k] || 0)]);
+  const line = (k) => pts(k).map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
+  const hb = hover === null ? null : by.get(hover) || { received: 0, finished: 0 };
+  const diff = hb ? hb.finished - hb.received : 0;
+  const lb = last >= 0 ? by.get(last) : null;
+  const hi = lb ? lb.received >= lb.finished : true;
+  return (
+    <figure className="chart" aria-label={`Entradas y finalizados por mes, ${year}`}>
+      <div className="legend" aria-hidden="true">
+        <span><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="var(--c-in)" /></svg>Entradas</span>
+        <span><svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" fill="var(--c-out)" /></svg>Finalizados</span>
+      </div>
+      <div className="chart-box">
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Gráfico de puntos: por cada mes de ${year}, coches que entraron y coches finalizados. Los datos están en la tabla de debajo.`}>
+          {ticks.map((t) => (
+            <g key={t}>
+              <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} className="grid" />
+              <text x={L - 8} y={y(t) + 4} textAnchor="end" className="axis">{t}</text>
+            </g>
+          ))}
+          {MONTH_SHORT.map((m, i) => <text key={m} x={x(i)} y={H - 12} textAnchor="middle" className="axis" data-future={i > last}>{m}</text>)}
+          {last >= 0 && <path d={line('received')} className="ln ln--in" />}
+          {last >= 0 && <path d={line('finished')} className="ln ln--out" />}
+          {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} className="cross" />}
+          {pts('received').map(([px, py], i) => <circle key={`i${i}`} cx={px} cy={py} r={5} className="dot dot--in" />)}
+          {pts('finished').map(([px, py], i) => <rect key={`o${i}`} x={px - 5} y={py - 5} width={10} height={10} className="dot dot--out" />)}
+          {lb && <text x={x(last)} y={y(lb.received) + (hi ? -12 : 20)} textAnchor="middle" className="val">{lb.received}</text>}
+          {lb && <text x={x(last)} y={y(lb.finished) + (hi ? 20 : -12)} textAnchor="middle" className="val">{lb.finished}</text>}
+          {MONTH_SHORT.map((m, i) => (
+            <rect key={`h${m}`} x={x(i) - (W - L - R) / 24} y={T} width={(W - L - R) / 12} height={H - T - B} className="hit" tabIndex={i <= last ? 0 : -1}
+              aria-label={i <= last ? `${MONTH_LONG[i]}: ${by.get(i)?.received || 0} entradas, ${by.get(i)?.finished || 0} finalizados` : undefined}
+              onMouseEnter={() => { if (i <= last) setHover(i); }} onMouseLeave={() => setHover(null)} onFocus={() => { if (i <= last) setHover(i); }} onBlur={() => setHover(null)} />
+          ))}
+        </svg>
+        {hb && (
+          <div className="tip" data-side={hover >= 6 ? 'left' : 'right'} style={{ left: `${(x(hover) / W) * 100}%` }} role="status">
+            <b>{MONTH_LONG[hover]}</b>
+            <span><i className="sw sw--in" />Entradas: {hb.received}</span>
+            <span><i className="sw sw--out" />Finalizados: {hb.finished}</span>
+            <span className="hint">{diff === 0 ? 'Salieron tantos como entraron' : diff > 0 ? `Salieron ${diff} más de los que entraron` : `Se acumulan ${-diff} en el taller`}</span>
+          </div>
+        )}
+      </div>
+    </figure>
+  );
+}
+
+function Period() {
+  const [p, setP] = useState('day');
+  const { data, error } = useLoad(`/owner/period?p=${p}`);
+  const max = data ? Math.max(1, ...data.buckets.map((b) => Math.max(b.received, b.finished))) : 1;
+  return (
+    <div className="card">
+      <div className="actions" role="tablist" aria-label="Periodo">
+        {PERIOD_BTNS.map(([k, l]) => <button key={k} type="button" role="tab" className="eta-chip" aria-pressed={p === k} onClick={() => setP(k)}>{l}</button>)}
+      </div>
+      {error && <p className="notice notice--error">{error}</p>}
+      {data && data.period === p && (
+        <>
+          <h2>{data.label}</h2>
+          <div className="stats stats--4">
+            <div className="stat"><b>{data.cur.received}</b><span>Entradas</span><Diff cur={data.cur.received} prev={data.prev.received} label={data.prevLabel} /></div>
+            <div className="stat"><b>{data.cur.finished}</b><span>Finalizados</span><Diff cur={data.cur.finished} prev={data.prev.finished} label={data.prevLabel} /></div>
+            <div className="stat"><b>{data.open.pending}</b><span>Siguen en el taller ahora</span><span className="diff">{data.open.inProgress} en curso</span></div>
+            <div className="stat"><b>{fmtMin(data.cur.avgTotalMin)}</b><span>Tiempo medio en el taller</span><Diff cur={data.cur.avgTotalMin} prev={data.prev.avgTotalMin} label={data.prevLabel} lowerIsBetter /></div>
+          </div>
+          {p === 'year' && <YearChart buckets={data.buckets} year={data.from.slice(0, 4)} />}
+          {data.buckets.length === 0 && <p className="empty">Todavía no hay movimientos en este periodo.</p>}
+          {data.buckets.length > 0 && (
+            <table className="table table--bars">
+              <thead><tr><th>{p === 'day' ? 'Hora' : p === 'month' ? 'Día' : 'Mes'}</th><th>Entradas</th><th>Finalizados</th><th aria-hidden="true" /></tr></thead>
+              <tbody>
+                {data.buckets.map((b) => (
+                  <tr key={b.key}><td style={{ textTransform: 'capitalize' }}>{b.label}</td><td>{b.received}</td><td>{b.finished}</td>
+                    <td className="bars" aria-hidden="true"><i style={{ width: `${(b.received / max) * 100}%` }} /><i data-f="1" style={{ width: `${(b.finished / max) * 100}%` }} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Summary() {
   const { data, error, load } = useLoad('/owner/stats');
   const { data: st, load: loadSettings } = useLoad('/owner/settings');
@@ -52,11 +165,7 @@ export function Summary() {
       {error && <p className="notice notice--error">{error}</p>}
       {data && (
         <>
-          <div className="stats">
-            <div className="stat"><b>{data.today.received}</b><span>Entradas hoy</span></div>
-            <div className="stat"><b>{data.today.finished}</b><span>Finalizados hoy</span></div>
-            <div className="stat"><b>{data.pending}</b><span>Siguen en el taller</span></div>
-          </div>
+          <Period />
           <div className="card">
             <h2>Cuánto tarda cada coche</h2>
             <div className="stats" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -87,6 +196,29 @@ export function Summary() {
   );
 }
 
+const WEEK_DAYS = [[1, 'Lunes'], [2, 'Martes'], [3, 'Miércoles'], [4, 'Jueves'], [5, 'Viernes'], [6, 'Sábado'], [7, 'Domingo']];
+
+// Ver cómo queda el informe de esta semana y mandártelo ahora, sin esperar al día de envío.
+function Weekly() {
+  const [pv, setPv] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const view = async () => { setMsg(null); try { const r = await get('/owner/weekly-preview'); setPv(r.ok ? r : null); if (!r.ok) setMsg(errText(r.error)); } catch { setMsg('Sin conexión.'); } };
+  const sendNow = async () => {
+    setMsg(null);
+    try { const r = await post('/owner/weekly/send', {}); setMsg(r.ok ? 'Enviado: llegará en unos segundos a tu correo.' : r.error === 'no_owner_email' ? 'Guarda primero tu correo en «Mi correo».' : errText(r.error)); } catch { setMsg('Sin conexión.'); }
+  };
+  return (
+    <>
+      <div className="actions">
+        <Btn variant="ghost" onClick={view}>Ver el informe de esta semana</Btn>
+        <Btn variant="ghost" onClick={sendNow}>Enviármelo ahora</Btn>
+      </div>
+      {msg && <p className="notice" role="status">{msg}</p>}
+      {pv && <div className="notice"><strong>{pv.subject}</strong><pre style={{ whiteSpace: 'pre-wrap', font: 'inherit', margin: '8px 0 0' }}>{pv.body}</pre></div>}
+    </>
+  );
+}
+
 const STATUS_SHEET = { ok: 'Conectada', pending: 'Pendiente de la primera sincronización', error: 'Error', no_credentials: 'Falta conectar Google (lo hace Tridom)', off: 'Sin hoja' };
 
 export function Settings() {
@@ -106,7 +238,11 @@ export function Settings() {
 
   const save = async (e) => {
     e.preventDefault(); setSaved(null);
-    const body = { phone: f.phone, hours: f.hours, replyTo: f.replyTo, ownerEmail: f.ownerEmail, summaryOn: f.summaryOn, summaryHour: Number(f.summaryHour), sheetId: f.sheetId.trim(), templates: f.templates };
+    const body = {
+      phone: f.phone, hours: f.hours, replyTo: f.replyTo, ownerEmail: f.ownerEmail, summaryOn: f.summaryOn, summaryHour: Number(f.summaryHour),
+      weeklyOn: f.weeklyOn, weeklyDay: Number(f.weeklyDay), weeklyHour: Number(f.weeklyHour), staleDays: Number(f.staleDays),
+      sheetId: f.sheetId.trim(), templates: f.templates,
+    };
     try {
       const r = await patch('/owner/settings', body);
       if (r.ok) { setErrors({}); setData({ ...data, settings: r.settings }); setF(r.settings); setSaved('Guardado.'); }
@@ -152,6 +288,18 @@ export function Settings() {
           <Field label="Mi correo" error={errors.ownerEmail && ERR.email_format}>{(a) => <input className="input" type="email" value={f.ownerEmail} onChange={set('ownerEmail')} {...a} />}</Field>
           <Field label="A partir de la hora">{(a) => <select className="input" value={f.summaryHour} onChange={set('summaryHour')} {...a}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select>}</Field>
         </div>
+      </div>
+
+      <div className="card">
+        <h2>Informe semanal</h2>
+        <label className="check"><input type="checkbox" checked={f.weeklyOn} onChange={set('weeklyOn')} /><span>Enviarme cada semana los coches reparados, los que siguen en curso y los que llevan mucho tiempo sin terminar, comparado con la semana anterior</span></label>
+        <div className="row2">
+          <Field label="Día de envío" error={errors.weeklyDay && ERR.invalid}>{(a) => <select className="input" value={f.weeklyDay} onChange={set('weeklyDay')} {...a}>{WEEK_DAYS.map(([n, l]) => <option key={n} value={n}>{l}</option>)}</select>}</Field>
+          <Field label="A partir de la hora">{(a) => <select className="input" value={f.weeklyHour} onChange={set('weeklyHour')} {...a}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}</select>}</Field>
+        </div>
+        <Field label="Un coche se considera atascado a partir de (días)" error={errors.staleDays && 'Entre 2 y 60 días.'} hint="Aparece en el apartado «Atención» si lleva tantos días o más en el taller sin estar finalizado.">{(a) => <input className="input" type="number" min="2" max="60" value={f.staleDays} onChange={set('staleDays')} {...a} />}</Field>
+        <p className="hint">Se envía al correo de arriba («Mi correo»). Guarda los ajustes antes de probarlo.</p>
+        <Weekly />
       </div>
 
       <div className="card">
