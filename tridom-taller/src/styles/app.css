@@ -214,3 +214,10 @@ textarea.input { min-height: 120px; resize: vertical; }
 .sw--out { background: var(--c-out); }
 
 .tip[data-side='left'] { transform: translateX(calc(-100% - 14px)); }
+
+/* Citas pendientes y motivo de la visita */
+.car-reason { display: grid; gap: 2px; padding: 8px 12px; border-left: 3px solid var(--blue-500); background: var(--blue-100); border-radius: 0 var(--r-s) var(--r-s) 0; font-size: 0.9375rem; }
+.car-reason p { margin: 0; }
+.appts { border-style: dashed; }
+.appt .acts { grid-template-columns: 1fr 1fr; }
+.appt .act { min-height: 56px; font-size: 1.0625rem; }

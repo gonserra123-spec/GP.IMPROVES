@@ -43,7 +43,7 @@ export function readTrackToken(token) {
 }
 
 // ---------- Contenido ----------
-function layout({ workshop, text, settings, link, track }) {
+function layout({ workshop, text, settings, link, track, reason }) {
   const paras = text.split('\n').map((l) => (l.trim() ? `<p style="margin:0 0 12px">${esc(l)}</p>` : '')).join('');
   const contact = [settings.phone && `Teléfono: ${esc(settings.phone)}`, settings.hours && `Horario: ${esc(settings.hours)}`].filter(Boolean).join(' · ');
   return `<!doctype html><html lang="es"><body style="margin:0;background:#f4f7fc;font-family:Arial,Helvetica,sans-serif;color:#0e1b2e">
@@ -51,7 +51,7 @@ function layout({ workshop, text, settings, link, track }) {
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #0b2a5b;border-radius:10px">
 <tr><td style="padding:18px 24px;border-bottom:1px solid #d9e2f2;font-size:20px;font-weight:700;color:#0b2a5b;letter-spacing:.04em;text-transform:uppercase">${esc(workshop)}</td></tr>
 <tr><td style="padding:24px;font-size:16px;line-height:1.5">${paras}${track ? `<p style="margin:20px 0 0"><a href="${esc(track)}" style="display:inline-block;background:#2f6fed;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:8px">Ver cómo va mi coche</a></p>` : ''}</td></tr>
-<tr><td style="padding:16px 24px;border-top:1px solid #d9e2f2;font-size:12px;color:#44567a;line-height:1.5">${contact ? `${contact}<br>` : ''}Recibes este aviso porque dejaste tu coche en ${esc(workshop)}.${link ? ` <a href="${esc(link)}" style="color:#1f4fb8">No quiero recibir más avisos</a>.` : ''}</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #d9e2f2;font-size:12px;color:#44567a;line-height:1.5">${contact ? `${contact}<br>` : ''}Recibes este aviso porque ${esc(reason || `dejaste tu coche en ${workshop}`)}.${link ? ` <a href="${esc(link)}" style="color:#1f4fb8">No quiero recibir más avisos</a>.` : ''}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -77,6 +77,23 @@ export function queueVisitMail(wid, visit, kind, eventId, now = Date.now()) {
   const since = iso(now - DEDUPE_MINUTES * 60_000);
   if (db.prepare("SELECT 1 FROM outbox WHERE visit_id = ? AND kind = ? AND status IN ('pending','sending','sent') AND created_at > ?").get(visit.id, kind, since)) return insertMail(db, { ...base, status: 'skipped_dup' });
   return insertMail(db, { ...base, status: 'pending' });
+}
+
+// Confirmación de la cita que ha pedido el cliente desde la web del taller. Sale al momento (no hay «deshacer»).
+export function queueAppointmentMail(wid, appt, now = Date.now()) {
+  const db = workshopDb(wid);
+  const w = getWorkshop(wid);
+  const s = getSettings(db);
+  const body = [
+    `Hola ${appt.name},`, '',
+    `Hemos recibido tu solicitud de cita en ${w.name} para el coche ${formatPlate(appt.plate)}.`, '',
+    `Motivo: ${appt.problem}`, '',
+    `${w.name} se pondrá en contacto contigo para acordar el día y la hora.`,
+    s.phone ? `Teléfono: ${s.phone}` : '',
+  ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n').trim();
+  const row = { id: randomUUID(), visit_id: null, event_id: null, kind: 'appointment', to_email: appt.email, subject: `Hemos recibido tu solicitud de cita en ${w.name}`, body, created_at: iso(now), send_after: iso(now), error: null };
+  const unsub = db.prepare('SELECT 1 FROM unsubs WHERE email = ?').get(appt.email);
+  return insertMail(db, { ...row, status: unsub ? 'skipped_unsub' : 'pending' });
 }
 
 export function queueSummary(wid, to, subject, body, now = Date.now()) {
@@ -123,7 +140,7 @@ async function deliver(wid, row, now) {
   const msg = {
     from: `"${w.name.replace(/["\r\n<>]/g, '')}" <${MAIL.from}>`, to: row.to_email, replyTo: settings.replyTo || undefined,
     subject: row.subject, text: `${row.body}${track ? `\n\nVer cómo va tu coche: ${track}` : ''}${link ? `\n\nNo quiero recibir más avisos: ${link}` : ''}`,
-    html: layout({ workshop: w.name, text: row.body, settings, link, track }), attachments,
+    html: layout({ workshop: w.name, text: row.body, settings, link, track, reason: row.kind === 'appointment' ? `pediste una cita en ${w.name}` : undefined }), attachments,
     headers: link ? { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } : undefined,
   };
   if (sender) return sender(msg, row, wid);

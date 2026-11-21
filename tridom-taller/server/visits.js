@@ -22,8 +22,10 @@ function dto(db, v) {
   return {
     id: v.id, plate: v.plate, email: maskEmail(v.email), make: v.make, model: v.model, state: v.state, eta: v.eta, photo: !!v.photo,
     receivedAt: v.received_at, inProgressAt: v.in_progress_at, finishedAt: v.finished_at, mail: lastMail(db, v.id), mailProblem: !!bad,
+    problem: v.problem || '', name: v.customer_name || '', phone: v.phone || '',
   };
 }
+export const visitById = (wid, id) => { const db = workshopDb(wid); const v = getVisit(db, id); return v ? dto(db, v) : null; };
 const getVisit = (db, id) => db.prepare('SELECT * FROM visits WHERE id = ?').get(id);
 
 // Lo que ve el cliente en su enlace: solo su coche, sin correo ni datos internos del taller.
@@ -136,6 +138,7 @@ export function undo(wid, session, id, now = Date.now()) {
     db.prepare("UPDATE outbox SET status = 'cancelled' WHERE visit_id = ? AND status IN ('pending')").run(id);
     db.prepare('DELETE FROM events WHERE visit_id = ?').run(id);
     db.prepare('DELETE FROM visits WHERE id = ?').run(id);
+    db.prepare("UPDATE appointments SET status = 'requested', visit_id = NULL WHERE visit_id = ?").run(id); // la cita vuelve a la lista
     const f = photoPath(wid, id); if (f) rmSync(f, { force: true });
     scheduleSync(wid);
     return { removed: true, id };

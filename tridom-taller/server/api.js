@@ -1,12 +1,13 @@
 // API. Un mecánico solo toca coches y botones; el dueño ve además envíos, tiempos y ajustes;
 // el administrador (nosotros) da de alta talleres. Cada petición trabaja solo con la base de su taller.
 import { setTimeout as sleep } from 'node:timers/promises';
-import { ADMIN_KEY, MAIL } from './config.js';
+import { ADMIN_KEY, CITAS_URL, MAIL } from './config.js';
 import { getSettings, setSettings, workshopDb } from './db.js';
 import {
   adminKeyOk, clientIp, cookie, createLimiter, createWorkshop, findByKey, getWorkshop, listWorkshops, makeSession, needsRenewal, readSession,
   regenerateKey, renameWorkshop, setStatus,
 } from './auth.js';
+import { arriveAppointment, dismissAppointment, listAppointments, submitBooking } from './appointments.js';
 import { applyWebhookEvent, readTrackToken, readUnsubToken, recentMail, sendTest, unsubscribe, verifyWebhook } from './mail.js';
 import { periodStats, stats } from './report.js';
 import { exportXlsx, serviceAccountEmail, sheetsConfigured, syncSheet } from './sheets.js';
@@ -22,6 +23,7 @@ const limits = {
   apiIp: createLimiter({ windowMs: MIN, max: 600 }),
   publicIp: createLimiter({ windowMs: MIN, max: 30 }),
   mailTest: createLimiter({ windowMs: 10 * MIN, max: 5 }),
+  booking: createLimiter({ windowMs: 10 * MIN, max: 5 }), // citas pedidas desde una misma conexión
 };
 export const resetLimits = () => Object.values(limits).forEach((l) => l.reset());
 
@@ -67,6 +69,7 @@ function ownerSettings(wid) {
   return {
     phone: s.phone || '', hours: s.hours || '', replyTo: s.replyTo || '', ownerEmail: s.ownerEmail || '', summaryOn: !!s.summaryOn, summaryHour: s.summaryHour ?? 19,
     weeklyOn: s.weeklyOn ?? WEEKLY_DEFAULTS.weeklyOn, weeklyDay: s.weeklyDay ?? WEEKLY_DEFAULTS.weeklyDay, weeklyHour: s.weeklyHour ?? WEEKLY_DEFAULTS.weeklyHour, staleDays: s.staleDays ?? WEEKLY_DEFAULTS.staleDays,
+    bookingUrl: `${CITAS_URL}/?taller=${wid}`,
     sheetId: s.sheetId || '', sheetStatus: s.sheetStatus || (s.sheetId ? 'pending' : 'off'), sheetSyncedAt: s.sheetSyncedAt || null, sheetError: s.sheetError || '',
     templates: { ...DEFAULT_TEMPLATES, ...(s.templates || {}) },
   };
@@ -136,6 +139,7 @@ async function shop(req, res, session, path, method, body) {
   if (method === 'GET') {
     if (path === '/session') return send(res, 200, { ok: true, role: session.r, workshop: { name: session.workshopName }, undoSeconds: Number(process.env.UNDO_SECONDS) || 10 });
     if (path === '/visits') return send(res, 200, { ok: true, visits: listVisits(wid) });
+    if (path === '/appointments') return send(res, 200, { ok: true, appointments: listAppointments(wid) });
     if (path === '/lookup') return send(res, 200, { ok: true, ...lookup(wid, new URL(req.url, 'http://x').searchParams.get('q')) });
     const ph = /^\/visits\/([0-9a-f-]{36})\/photo$/.exec(path);
     if (ph) { const f = photoPath(wid, ph[1]); if (!f) return send(res, 404, { ok: false }); res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=600' }); return res.end(readFileSync(f)); }
@@ -155,6 +159,8 @@ async function shop(req, res, session, path, method, body) {
   }
 
   if (path === '/visits' && method === 'POST') return reply(res, withOp(wid, body, () => createVisit(wid, session, body)), 201);
+  const ap = /^\/appointments\/([0-9a-f-]{36})\/(arrive|dismiss)$/.exec(path);
+  if (ap && method === 'POST') return reply(res, ap[2] === 'arrive' ? arriveAppointment(wid, session, ap[1]) : dismissAppointment(wid, ap[1]));
   const m = /^\/visits\/([0-9a-f-]{36})\/(state|undo|eta)$/.exec(path);
   if (m && method === 'POST') {
     const [, id, action] = m;
@@ -203,6 +209,24 @@ export async function handleApi(req, res) {
       const w = info && getWorkshop(info.wid);
       const data = w && w.status === 'active' ? trackInfo(info.wid, info.visitId) : null;
       return data ? send(res, 200, { ok: true, workshop: w.name, ...data }, { 'X-Robots-Tag': 'noindex' }) : send(res, 404, { ok: false });
+    }
+    // Citas del cliente: pública y desde otra web (la del taller), sin cookies; por eso se permite cualquier origen y solo estas rutas.
+    if (path.startsWith('/public/booking/')) {
+      const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400', 'X-Robots-Tag': 'noindex' };
+      if (method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+      const wid = path.slice('/public/booking/'.length);
+      const w = /^[a-z0-9]{6,32}$/.test(wid) ? getWorkshop(wid) : null;
+      if (!w || w.status !== 'active') return send(res, 404, { ok: false }, cors);
+      if (method === 'GET') { const s = getSettings(workshopDb(wid)); return send(res, 200, { ok: true, workshop: w.name, phone: s.phone || '', hours: s.hours || '' }, cors); }
+      if (method === 'POST') {
+        const ip = clientIp(req);
+        if (!limits.booking.hit(ip).ok) return send(res, 429, { ok: false, error: 'too_many' }, cors);
+        const b = await readBody(req, 8_192);
+        if (b.error) return send(res, 400, { ok: false, error: b.error }, cors);
+        const r = submitBooking(wid, b.json);
+        return r.error ? send(res, r.status || 400, { ok: false, error: r.error, ...(r.errors ? { errors: r.errors } : {}) }, cors) : send(res, 201, { ok: true }, cors);
+      }
+      return send(res, 405, { ok: false }, cors);
     }
     if (path === '/webhooks/resend' && method === 'POST') {
       const b = await readBody(req, 64_000);

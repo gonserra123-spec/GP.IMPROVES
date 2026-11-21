@@ -331,6 +331,69 @@ test('sesión larga: el mecánico no pierde la entrada, se renueva con el uso y 
   assert.equal((await call('GET', '/visits', null, s.mech)).status, 401);
 });
 
+test('citas del cliente: se piden desde otra web, llegan al mecánico y se convierten en coche', async () => {
+  resetLimits(); await drain();
+  const s = await shop('Taller Citas');
+  const other = await shop('Taller Ajeno Citas');
+  await call('PATCH', '/owner/settings', { phone: '961 111 222' }, s.owner);
+  const url = `${base}/api/public/booking/${s.id}`;
+  const body = { name: 'Ana Pérez', plate: '1234 BCD', email: 'ana@example.com', phone: '600 123 456', problem: 'No me va el aire acondicionado', consent: true, website: '', elapsed: 5000 };
+  const post = (b, w = s.id) => fetch(`${base}/api/public/booking/${w}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://tallerjuan.example' }, body: JSON.stringify(b) });
+  // La página del cliente vive en otro origen: preflight y datos públicos del taller (sin cookies ni claves).
+  const pre = await fetch(url, { method: 'OPTIONS', headers: { Origin: 'https://tallerjuan.example', 'Access-Control-Request-Method': 'POST' } });
+  assert.equal(pre.status, 204); assert.equal(pre.headers.get('access-control-allow-origin'), '*');
+  const info = await json(await fetch(url)); assert.equal(info.workshop, 'Taller Citas'); assert.equal(info.phone, '961 111 222');
+  assert.equal((await fetch(`${base}/api/public/booking/noexiste123`)).status, 404);
+  // Validación: nada se guarda si falta algo.
+  const bad = await post({ ...body, plate: 'XX', consent: false, problem: 'ab' });
+  assert.equal(bad.status, 422); const be = (await json(bad)).errors; assert.ok(be.plate && be.consent && be.problem);
+  // Programas: casilla trampa rellena o formulario en menos de 1,5 s → se ignora en silencio.
+  assert.equal((await post({ ...body, website: 'http://spam' })).status, 201);
+  assert.equal((await post({ ...body, elapsed: 200 })).status, 201);
+  assert.equal((await json(await call('GET', '/appointments', null, s.mech))).appointments.length, 0);
+  // Cita buena: 201, aparece al mecánico con el motivo y se envía la confirmación al cliente.
+  const ok = await post(body); assert.equal(ok.status, 201); assert.equal(ok.headers.get('access-control-allow-origin'), '*');
+  await mail.processOutbox(Date.now() + 5000);
+  const conf = sent.find((m) => m.kind === 'appointment');
+  assert.ok(conf); assert.equal(conf.to, 'ana@example.com'); assert.match(conf.text, /No me va el aire acondicionado/); assert.match(conf.text, /1234 BCD/);
+  assert.match(conf.html, /pediste una cita en Taller Citas/); assert.match(conf.headers['List-Unsubscribe'], /\/baja\//);
+  const list = (await json(await call('GET', '/appointments', null, s.mech))).appointments;
+  assert.equal(list.length, 1); assert.equal(list[0].name, 'Ana Pérez'); assert.equal(list[0].phone, '600 123 456'); assert.equal(list[0].email, 'a***@example.com');
+  // Corregir la misma solicitud la actualiza, no la duplica ni manda otro correo.
+  sent.length = 0;
+  assert.equal((await post({ ...body, problem: 'Aire acondicionado y revisión' })).status, 201);
+  await mail.processOutbox(Date.now() + 5000); assert.equal(sent.length, 0);
+  const again = (await json(await call('GET', '/appointments', null, s.mech))).appointments;
+  assert.equal(again.length, 1); assert.equal(again[0].problem, 'Aire acondicionado y revisión');
+  // Otro taller no ve ni toca esta cita.
+  assert.equal((await json(await call('GET', '/appointments', null, other.mech))).appointments.length, 0);
+  assert.equal((await call('POST', `/appointments/${list[0].id}/arrive`, {}, other.mech)).status, 404);
+  assert.equal((await call('POST', `/appointments/${list[0].id}/dismiss`, {}, other.mech)).status, 404);
+  // «Ha llegado»: pasa a ser un coche con el motivo, el nombre y el móvil.
+  const arr = await call('POST', `/appointments/${list[0].id}/arrive`, {}, s.mech); assert.equal(arr.status, 200);
+  const car = (await json(arr)).visit; assert.equal(car.state, 'received'); assert.equal(car.problem, 'Aire acondicionado y revisión'); assert.equal(car.name, 'Ana Pérez'); assert.equal(car.phone, '600 123 456');
+  assert.equal((await json(await call('GET', '/appointments', null, s.mech))).appointments.length, 0);
+  assert.equal((await json(await call('GET', '/visits', null, s.mech))).visits[0].problem, 'Aire acondicionado y revisión');
+  // Deshacer la llegada devuelve la cita a la lista.
+  assert.equal((await call('POST', `/visits/${car.id}/undo`, {}, s.mech)).status, 200);
+  assert.equal((await json(await call('GET', '/appointments', null, s.mech))).appointments.length, 1);
+  // Si el coche ya está en el taller, no se duplica y la cita sigue pendiente.
+  await call('POST', '/visits', { plate: '1234BCD', email: 'ana@example.com' }, s.mech);
+  assert.equal((await call('POST', `/appointments/${list[0].id}/arrive`, {}, s.mech)).status, 409);
+  assert.equal((await json(await call('GET', '/appointments', null, s.mech))).appointments.length, 1);
+  // Descartar la quita de la lista.
+  assert.equal((await call('POST', `/appointments/${list[0].id}/dismiss`, {}, s.mech)).status, 200);
+  assert.equal((await json(await call('GET', '/appointments', null, s.mech))).appointments.length, 0);
+  // Límites: una misma persona no puede llenar el taller (3 solicitudes al día por correo; 5 por conexión cada 10 min).
+  resetLimits();
+  for (const pl of ['1111BCD', '2222BCD', '3333BCD']) assert.equal((await post({ ...body, email: 'spam@example.com', plate: pl })).status, 201);
+  assert.equal((await post({ ...body, email: 'spam@example.com', plate: '4444BCD' })).status, 429);
+  resetLimits();
+  for (let i = 0; i < 5; i += 1) await post({ ...body, email: `x${i}@example.com`, plate: '5555BCD' });
+  assert.equal((await post({ ...body, email: 'x9@example.com', plate: '5555BCD' })).status, 429);
+  resetLimits(); await drain();
+});
+
 test('plantillas y ajustes: el dueño cambia el texto, teléfono y horario', async () => {
   resetLimits(); await drain();
   const s = await shop('Taller Plantilla');

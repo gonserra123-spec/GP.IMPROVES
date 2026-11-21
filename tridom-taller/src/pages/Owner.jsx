@@ -17,7 +17,7 @@ function useLoad(path) {
   return { data, error, load, setData };
 }
 
-const KIND = { received: 'Alta', in_progress: 'En curso', finished: 'Finalizado', summary: 'Resumen' };
+const KIND = { appointment: 'Cita', received: 'Alta', in_progress: 'En curso', finished: 'Finalizado', summary: 'Resumen' };
 const STATUS = { pending: 'En camino', sending: 'Enviando', sent: 'Enviado', failed: 'Falló', bounced: 'Rebotó', cancelled: 'Deshecho', skipped_dup: 'Repetido (no se envió)', skipped_unsub: 'Baja del cliente' };
 
 export function Mail() {
@@ -196,6 +196,33 @@ export function Summary() {
   );
 }
 
+// Enlace y código para que el taller (o quien le lleva la web) ponga el formulario de citas en su página.
+function Booking({ url }) {
+  const [copied, setCopied] = useState(null);
+  if (!url) return null;
+  const origin = new URL(url).origin; const id = new URL(url).searchParams.get('taller');
+  const snippets = [
+    ['link', 'Enlace directo (para un botón, Google Maps, Instagram o WhatsApp)', url],
+    ['script', 'Formulario dentro de su web (pegar este código donde quiera que salga)', `<script src="${origin}/embed.js" data-taller="${id}"></script>`],
+    ['iframe', 'Alternativa con iframe', `<iframe src="${url}" title="Pedir cita" style="width:100%;height:760px;border:0" loading="lazy"></iframe>`],
+  ];
+  const copy = async (k, t) => { try { await navigator.clipboard.writeText(t); setCopied(k); setTimeout(() => setCopied(null), 2000); } catch { setCopied('err'); } };
+  return (
+    <div className="card">
+      <h2>Citas desde tu web</h2>
+      <p className="hint">Tus clientes piden cita con su nombre, matrícula, correo y el motivo. La solicitud te aparece en «Hoy» como cita pendiente.</p>
+      {snippets.map(([k, label, text]) => (
+        <div key={k} className="field">
+          <label htmlFor={`bk-${k}`}>{label}</label>
+          <textarea id={`bk-${k}`} className="input" rows={k === 'link' ? 2 : 3} readOnly value={text} spellCheck="false" onFocus={(e) => e.target.select()} />
+          <Btn variant="ghost sm" onClick={() => copy(k, text)}>{copied === k ? 'Copiado' : 'Copiar'}</Btn>
+        </div>
+      ))}
+      {copied === 'err' && <p className="notice notice--warn">No se pudo copiar solo: selecciona el texto y cópialo.</p>}
+    </div>
+  );
+}
+
 const WEEK_DAYS = [[1, 'Lunes'], [2, 'Martes'], [3, 'Miércoles'], [4, 'Jueves'], [5, 'Viernes'], [6, 'Sábado'], [7, 'Domingo']];
 
 // Ver cómo queda el informe de esta semana y mandártelo ahora, sin esperar al día de envío.
@@ -301,6 +328,8 @@ export function Settings() {
         <p className="hint">Se envía al correo de arriba («Mi correo»). Guarda los ajustes antes de probarlo.</p>
         <Weekly />
       </div>
+
+      <Booking url={f.bookingUrl} />
 
       <div className="card">
         <h2>Hoja de Google</h2>

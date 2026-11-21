@@ -8,6 +8,7 @@
 | `SESSION_SECRET` | sí | 32+ caracteres. Firma sesiones **y resume las claves de acceso**: si cambia, todas las claves dejan de valer. Guárdalo en un gestor de secretos. |
 | `ADMIN_KEY` | sí | Clave de `/admin`. Larga y única. |
 | `PUBLIC_URL` | sí | Dirección pública (`https://taller.tridom.es`). Va en los enlaces de baja. |
+| `CITAS_URL` | para citas | Dirección donde está publicada la app `tridom-citas` (`https://citas.tridom.es`). Con ella se muestra a cada taller su enlace y su código de formulario en Ajustes. |
 | `DATA_DIR` | sí | Carpeta **persistente** con las bases. Hay que copiarla (ver «Copias»). |
 | `RESEND_API_KEY` | sí, para enviar | Sin ella el modo es «pruebas». |
 | `MAIL_FROM` | sí, con Resend | Dirección verificada (único remitente). Los nombres de cada taller van en «De». |

@@ -17,7 +17,7 @@ const persist = (queue) => {
   }
 };
 
-let state = { status: 'boot', role: null, workshop: null, undoSeconds: 10, server: [], queue: load(), online: true, undo: null, toast: null, loaded: false };
+let state = { status: 'boot', role: null, workshop: null, undoSeconds: 10, server: [], appointments: [], queue: load(), online: true, undo: null, toast: null, loaded: false };
 const subs = new Set();
 const set = (patch) => { state = { ...state, ...patch }; subs.forEach((f) => f()); };
 const subscribe = (f) => { subs.add(f); return () => subs.delete(f); };
@@ -46,6 +46,8 @@ export async function refresh() {
     const r = await get('/visits');
     if (r.status === 401) { writeJson(SKEY, null); writeJson(VKEY, null); set({ status: 'login', role: null }); return; }
     if (r.ok) { writeJson(VKEY, r.visits); set({ server: r.visits, online: true, loaded: true }); }
+    const ap = await get('/appointments').catch(() => null);
+    if (ap?.ok) set({ appointments: ap.appointments });
   } catch (e) { if (e instanceof NetworkError) set({ online: false }); }
 }
 
@@ -112,6 +114,21 @@ export async function undoLast() {
 }
 export const dismissUndo = () => set({ undo: null });
 
+// Citas que pidió el cliente desde la web: «Ha llegado» las convierte en coche (con deshacer) y «Descartar» las quita.
+export async function arriveAppointment(a) {
+  try {
+    const r = await post(`/appointments/${a.id}/arrive`, {});
+    if (r.ok) { set({ appointments: state.appointments.filter((x) => x.id !== a.id) }); armUndo({ opId: uuid(), visitId: r.visit.id }, 'Cita convertida en coche', a.plate); await refresh(); }
+    else toast('error', errText(r.error));
+  } catch (e) { toast('error', e instanceof NetworkError ? 'Sin conexión: no se pudo registrar la llegada.' : 'No se pudo registrar la llegada.'); }
+}
+export async function dismissAppointment(a) {
+  try {
+    const r = await post(`/appointments/${a.id}/dismiss`, {});
+    if (r.ok) set({ appointments: state.appointments.filter((x) => x.id !== a.id) }); else toast('error', errText(r.error));
+  } catch { toast('error', 'Sin conexión: no se pudo descartar.'); }
+}
+
 // ---------- Sesión ----------
 function startPolling() {
   if (pollTimer) return;
@@ -146,5 +163,5 @@ export async function login(key) {
 export async function logout() {
   try { await post('/logout', {}); } catch { /* sin red: la cookie caduca sola */ }
   writeJson(SKEY, null); writeJson(VKEY, null);
-  set({ status: 'login', role: null, workshop: null, server: [], undo: null });
+  set({ status: 'login', role: null, workshop: null, server: [], appointments: [], undo: null });
 }

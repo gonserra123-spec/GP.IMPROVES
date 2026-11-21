@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Btn, Plate, StateChip, UndoBar, Wordmark } from '../components.jsx';
-import { applyQueue, logout, setEta, tap, useStore } from '../lib/store.js';
+import { applyQueue, arriveAppointment, dismissAppointment, logout, setEta, tap, useStore } from '../lib/store.js';
 import NewVisit from './NewVisit.jsx';
 import { Mail, Settings, Summary } from './Owner.jsx';
 
@@ -35,6 +35,12 @@ function Car({ v }) {
         <StateChip state={v.state} />
       </div>
       <p className="car-sub">{sub.map((s) => <span key={s}>{s}</span>)}</p>
+      {(v.problem || v.name || v.phone) && (
+        <div className="car-reason">
+          {v.problem && <p><b>Motivo:</b> {v.problem}</p>}
+          {(v.name || v.phone) && <p className="hint">{v.name}{v.name && v.phone ? ' · ' : ''}{v.phone && <a href={`tel:${v.phone.replace(/[^\d+]/g, '')}`}>{v.phone}</a>}</p>}
+        </div>
+      )}
       {!done && (
         <div className="eta" role="group" aria-label="Entrega prevista">
           <span className="hint">Entrega:</span>
@@ -55,6 +61,31 @@ function Car({ v }) {
   );
 }
 
+// Citas pedidas por el cliente desde la web del taller, a la espera de que llegue el coche.
+function Appointments() {
+  const { appointments } = useStore();
+  const [confirm, setConfirm] = useState(null);
+  if (!appointments.length) return null;
+  return (
+    <section className="card appts" aria-label="Citas pendientes">
+      <h2>Citas pendientes ({appointments.length})</h2>
+      <ul className="cars">
+        {appointments.map((a) => (
+          <li key={a.id} className="car appt">
+            <div className="car-top"><Plate value={a.plate} /><span className="hint">{hhmm(a.createdAt)}</span></div>
+            <p className="car-sub"><span><strong>{a.name}</strong></span>{a.phone && <span><a href={`tel:${a.phone.replace(/[^\d+]/g, '')}`}>{a.phone}</a></span>}<span>{a.email}</span></p>
+            <p className="car-reason"><b>Motivo:</b> {a.problem}</p>
+            <div className="acts">
+              <button type="button" className="act" data-next="true" onClick={() => arriveAppointment(a)}>Ha llegado</button>
+              <button type="button" className="act" onClick={() => (confirm === a.id ? (setConfirm(null), dismissAppointment(a)) : setConfirm(a.id))}>{confirm === a.id ? 'Pulsa otra vez' : 'Descartar'}</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Today() {
   const { server, queue, loaded } = useStore();
   const [adding, setAdding] = useState(false);
@@ -66,6 +97,7 @@ function Today() {
   return (
     <div className="page">
       <Btn variant="block" className="btn--xl" onClick={() => setAdding(true)} style={{ minHeight: 68, fontSize: '1.25rem' }}>+ Nuevo coche</Btn>
+      <Appointments />
       {loaded && !open.length && <p className="empty">No hay coches en el taller. Pulsa «Nuevo coche» cuando entre el primero.</p>}
       <ul className="cars" aria-label="Coches en el taller">{open.map((v) => <Car key={v.id} v={v} />)}</ul>
       {done.length > 0 && (

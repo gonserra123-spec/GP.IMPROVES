@@ -23,6 +23,7 @@ export const SECRET = loadSecret();
 
 export const ADMIN_KEY = process.env.ADMIN_KEY || (PROD ? '' : 'admin-dev-local');
 export const PUBLIC_URL = (process.env.PUBLIC_URL || 'http://localhost:5300').replace(/\/$/, '');
+export const CITAS_URL = (process.env.CITAS_URL || 'http://localhost:5400').replace(/\/$/, ''); // dónde vive la app de citas del cliente
 export const UNDO_SECONDS = Number(process.env.UNDO_SECONDS) || 10;
 export const DEDUPE_MINUTES = Number(process.env.DEDUPE_MINUTES) || 10;
 export const TIMEZONE = process.env.TIMEZONE || 'Europe/Madrid';

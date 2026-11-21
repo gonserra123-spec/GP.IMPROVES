@@ -93,7 +93,7 @@ export function Privacy() {
       <p className="notice notice--warn">Borrador pendiente de completar con los datos del responsable y del encargado.</p>
       {[
         ['Quién trata los datos', 'El responsable es cada taller. Tridom presta el software como encargado del tratamiento y solo actúa siguiendo las instrucciones del taller, bajo un contrato firmado con él. Razón social, NIF y contacto: FALTA.'],
-        ['Qué datos se guardan', 'Matrícula, marca y modelo, correo del cliente, la fecha y hora de cada paso (entrada, en curso, finalizado), la fecha de entrega prevista y, si el mecánico la hace, una foto del coche. Se guardan también los correos enviados y su resultado.'],
+        ['Qué datos se guardan', 'Si el cliente pide cita desde la web del taller: nombre, matrícula, correo, móvil (opcional) y el motivo que escribe. Además, matrícula, marca y modelo, correo del cliente, la fecha y hora de cada paso (entrada, en curso, finalizado), la fecha de entrega prevista y, si el mecánico la hace, una foto del coche. Se guardan también los correos enviados y su resultado.'],
         ['Para qué', 'Para avisar al cliente de cómo va su coche (ejecución del encargo de reparación) y para que el taller lleve su control y sus tiempos de trabajo.'],
         ['Separación entre talleres', 'Cada taller tiene su propia base de datos y su propia clave de acceso. Un taller nunca ve los datos de otro.'],
         ['Avisos por correo', 'Cada correo lleva un enlace para no recibir más avisos. Quien se da de baja no recibe más correos de ese taller.'],
